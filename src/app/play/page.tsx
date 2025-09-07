@@ -58,6 +58,8 @@ export default function PlayPage() {
   const handleGameStart = async (difficulty: GameDifficulty, lang: string, startingPlayer: Player) => {
     setGameState('loading_board');
     setLanguage(lang);
+    setTurn(startingPlayer);
+    
     const result = await generateFloor(difficulty, lang);
     if ('error' in result) {
       toast({
@@ -85,7 +87,6 @@ export default function PlayPage() {
     setGridSize({ rows, cols });
     setBoard(initialBoard);
     setScores({ player: 1, ai: 1 });
-    setTurn(startingPlayer);
     setGameState(startingPlayer === 'ai' ? 'ai_turn' : 'playing');
   };
 
@@ -105,25 +106,29 @@ export default function PlayPage() {
   
   const endTurn = useCallback((wasTurnSuccessful: boolean, currentTurnPlayer: Player, tileConquered: TileData | null) => {
     let newBoard = [...board];
+    let tileWasConquered = false;
     
     if (wasTurnSuccessful && tileConquered) {
       const winnerOfTurn = currentTurnPlayer;
       const loserOfTurn = winnerOfTurn === 'player' ? 'ai' : 'player';
 
-      // Unowned tile conquest or Duel conquest
       const isDuel = tileConquered.owner === loserOfTurn;
-      if (isDuel) {
-          const conqueredTheme = tileConquered.theme;
-          newBoard = newBoard.map(t => {
-            if (t.owner === loserOfTurn && t.theme === conqueredTheme) {
-              return { ...t, owner: winnerOfTurn };
-            }
-            return t;
-          });
-      } else if (tileConquered.owner === 'unowned') {
-          newBoard = newBoard.map(t =>
-            t.id === tileConquered.id ? { ...t, owner: winnerOfTurn } : t
-          );
+      
+      if (tileConquered.owner !== winnerOfTurn) {
+        tileWasConquered = true;
+        if (isDuel) {
+            const conqueredTheme = tileConquered.theme;
+            newBoard = newBoard.map(t => {
+              if (t.owner === loserOfTurn && t.theme === conqueredTheme) {
+                return { ...t, owner: winnerOfTurn };
+              }
+              return t;
+            });
+        } else if (tileConquered.owner === 'unowned') {
+            newBoard = newBoard.map(t =>
+              t.id === tileConquered.id ? { ...t, owner: winnerOfTurn } : t
+            );
+        }
       }
     }
 
@@ -135,7 +140,6 @@ export default function PlayPage() {
     setScores(newScores);
     setBoard(newBoard);
     
-    // Clean up state
     setActiveTile(null);
     setActiveQuestion(null);
     setDuel(null);
@@ -145,12 +149,10 @@ export default function PlayPage() {
       return;
     }
     
-    // "Winner Stays On" logic
-    if (wasTurnSuccessful) {
-      // If the current player was successful, they get to go again.
+    // "Winner Stays On" logic: only if a tile was conquered.
+    if (wasTurnSuccessful && tileWasConquered) {
       setGameState(currentTurnPlayer === 'ai' ? 'ai_turn' : 'playing');
     } else {
-      // If they failed, switch turns.
       const nextTurn = currentTurnPlayer === 'player' ? 'ai' : 'player';
       setTurn(nextTurn);
       setGameState(nextTurn === 'ai' ? 'ai_turn' : 'playing');
@@ -174,7 +176,6 @@ export default function PlayPage() {
       variant: wasTurnSuccessful ? 'default' : 'destructive',
     });
 
-    // Use a timeout to let the user see the result of the last question
     setTimeout(() => {
       endTurn(wasTurnSuccessful, finalDuelState.challenger, duelTile);
     }, 1500);
@@ -240,15 +241,12 @@ export default function PlayPage() {
   const handleAnswer = (correct: boolean) => {
     if (!activeTile) return;
 
-    // Logic for standard question (unowned tile)
     if (gameState === 'question') {
       const tileToConquer = activeTile;
-      // Delay to allow user to see feedback in modal
       setTimeout(() => endTurn(correct, 'player', tileToConquer), 1500);
       return;
     }
 
-    // Logic for Dueling
     if (gameState === 'duel' && duel) {
       const newPlayerCorrect = duel.playerCorrect + (correct ? 1 : 0);
       // Simulate AI response for the same question
@@ -265,7 +263,6 @@ export default function PlayPage() {
 
       setDuel(updatedDuelState);
 
-      // If there are more questions, show the next one after a delay
       if (nextQuestionIndex < duel.questions.length) {
         setTimeout(() => {
             setDuel({
@@ -273,9 +270,8 @@ export default function PlayPage() {
               activeQuestionIndex: nextQuestionIndex,
             });
             setActiveQuestion(duel.questions[nextQuestionIndex]);
-        }, 1500); // 1.5 second delay to show result and move to next question
+        }, 1500); 
       } else {
-        // This was the last question. End the duel.
         if (timerRef.current) clearInterval(timerRef.current);
         const tileToConquer = activeTile;
         endDuel(updatedDuelState, tileToConquer);
@@ -285,13 +281,10 @@ export default function PlayPage() {
   
   const handleModalClose = () => {
     if (!activeTile) return;
-    // Closing the modal during a question is a loss for that turn.
     if (gameState === 'question') {
       endTurn(false, 'player', activeTile);
     }
-    // Closing the modal during a duel is a loss for the challenger.
     if (gameState === 'duel' && duel) {
-      // Challenger loses if they close the modal.
       const wasTurnSuccessful = duel.challenger !== 'player';
       endTurn(wasTurnSuccessful, duel.challenger, activeTile);
     }
@@ -334,7 +327,6 @@ export default function PlayPage() {
             return { ...prevDuel, timeRemaining: prevDuel.timeRemaining - 1 };
           }
           
-          // Time's up!
           if (timerRef.current) clearInterval(timerRef.current);
           toast({
             title: "O tempo acabou!",
@@ -350,7 +342,6 @@ export default function PlayPage() {
   }, [toast, endDuel, activeTile]);
 
 
-  // Effect to start duel timer
   useEffect(() => {
     if (gameState === 'duel' && duel && duel.timeRemaining > 0) {
       startDuelTimer();
@@ -365,7 +356,6 @@ export default function PlayPage() {
   }, [gameState, duel, startDuelTimer]);
 
 
-  // AI Turn Logic
   useEffect(() => {
     if (gameState !== 'ai_turn' || turn !== 'ai' || board.length === 0) {
       return;
@@ -376,7 +366,6 @@ export default function PlayPage() {
         const aiTiles = board.filter(t => t.owner === 'ai');
         let possibleTargets: TileData[] = [];
 
-        // Find all unique tiles the AI can attack
         for (const aiTile of aiTiles) {
             const neighbors = getNeighbors(aiTile.id, cols, rows);
             for (const neighborId of neighbors) {
@@ -407,12 +396,11 @@ export default function PlayPage() {
                 description: `A IA desafia o seu território de "${theme}". Prepare-se para um duelo de ${numQuestions} perguntas!`,
             });
             
-            // In a real scenario, we might fetch questions. For AI, we can simulate the outcome.
             let aiCorrect = 0;
             let playerCorrect = 0;
             for(let i = 0; i < numQuestions; i++){
-                if (Math.random() > 0.35) aiCorrect++; // 65% chance for AI
-                if (Math.random() > 0.5) playerCorrect++; // 50% chance for player
+                if (Math.random() > 0.35) aiCorrect++; 
+                if (Math.random() > 0.5) playerCorrect++; 
             }
 
             const aiWon = aiCorrect > playerCorrect;
@@ -481,7 +469,6 @@ export default function PlayPage() {
           />
           {(gameState === 'ai_turn' || gameState === 'fetching_question') && (
             <div className="absolute inset-0 bg-black/10 flex flex-col items-center justify-center z-10 rounded-lg pointer-events-none">
-                {/* Visual feedback is now handled by toasts */}
             </div>
           )}
         </main>
