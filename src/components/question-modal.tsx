@@ -70,14 +70,14 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose }: Que
             <span className="capitalize">{tile.theme}</span>
           </DialogTitle>
           <DialogDescription>
-            Answer the question below to conquer the tile.
+            Responda à pergunta abaixo para conquistar a casa.
           </DialogDescription>
         </DialogHeader>
         
         {!question ? (
           <div className="flex flex-col items-center justify-center h-48 gap-4">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <p>Generating a question...</p>
+            <p>A gerar uma pergunta...</p>
           </div>
         ) : (
           <div>
@@ -109,7 +109,7 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose }: Que
             onClick={handleSubmit}
             disabled={!selectedOption || isAnswered}
           >
-            {isAnswered ? 'Continuing...' : 'Submit Answer'}
+            {isAnswered ? 'A continuar...' : 'Submeter Resposta'}
           </Button>
         </DialogFooter>
       </DialogContent>

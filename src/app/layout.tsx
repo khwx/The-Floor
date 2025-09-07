@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
   title: 'Tile Takeover',
-  description: 'A strategic trivia game to conquer the floor.',
+  description: 'Um jogo de trivia estratégico para conquistar o tabuleiro.',
 };
 
 export default function RootLayout({

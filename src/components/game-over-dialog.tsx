@@ -21,9 +21,9 @@ export function GameOverDialog({ isOpen, winner, scores, onPlayAgain }: GameOver
   if (!winner) return null;
 
   const messages = {
-    player: { title: "You Win!", icon: <Trophy className="h-16 w-16 text-yellow-400" />, description: "Congratulations! You have conquered the floor." },
-    ai: { title: "You Lose", icon: <Bot className="h-16 w-16 text-destructive" />, description: "The AI has bested you. Better luck next time!" },
-    draw: { title: "It's a Draw!", icon: <Scale className="h-16 w-16 text-muted-foreground" />, description: "A hard-fought battle ends in a stalemate." },
+    player: { title: "Você Ganhou!", icon: <Trophy className="h-16 w-16 text-yellow-400" />, description: "Parabéns! Conquistou o tabuleiro." },
+    ai: { title: "Você Perdeu", icon: <Bot className="h-16 w-16 text-destructive" />, description: "A IA venceu. Mais sorte para a próxima!" },
+    draw: { title: "É um Empate!", icon: <Scale className="h-16 w-16 text-muted-foreground" />, description: "Uma batalha renhida termina em empate." },
   };
 
   const { title, icon, description } = messages[winner];
@@ -41,17 +41,17 @@ export function GameOverDialog({ isOpen, winner, scores, onPlayAgain }: GameOver
         <div className="my-6 flex justify-around text-center">
             <div className="flex flex-col items-center gap-2">
                 <User className="h-8 w-8 text-primary"/>
-                <p className="text-sm text-muted-foreground">Your Score</p>
+                <p className="text-sm text-muted-foreground">A sua Pontuação</p>
                 <p className="text-3xl font-bold">{scores.player}</p>
             </div>
             <div className="flex flex-col items-center gap-2">
                 <Bot className="h-8 w-8 text-destructive"/>
-                <p className="text-sm text-muted-foreground">AI Score</p>
+                <p className="text-sm text-muted-foreground">Pontuação da IA</p>
                 <p className="text-3xl font-bold">{scores.ai}</p>
             </div>
         </div>
         <DialogFooter>
-          <Button onClick={onPlayAgain} className="w-full" size="lg">Play Again</Button>
+          <Button onClick={onPlayAgain} className="w-full" size="lg">Jogar Novamente</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

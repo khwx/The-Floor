@@ -55,7 +55,7 @@ export default function PlayPage() {
     const result = await generateFloor(difficulty, lang);
     if ('error' in result) {
       toast({
-        title: 'Error',
+        title: 'Erro',
         description: result.error,
         variant: 'destructive',
       });
@@ -104,7 +104,7 @@ export default function PlayPage() {
     const questionResult = await generateQuestion(tile.theme, language);
     if ('error' in questionResult) {
       toast({
-        title: 'Failed to get question',
+        title: 'Falha ao obter pergunta',
         description: questionResult.error,
         variant: 'destructive',
       });
@@ -188,8 +188,8 @@ export default function PlayPage() {
           const isCorrect = Math.random() > 0.25; // AI has 75% chance
           
           toast({
-              title: `AI challenges "${move.theme}"`,
-              description: isCorrect ? 'AI answered correctly!' : 'AI failed the challenge.',
+              title: `A IA desafia "${move.theme}"`,
+              description: isCorrect ? 'A IA respondeu corretamente!' : 'A IA falhou o desafio.',
           });
           
           setTimeout(() => {
@@ -208,7 +208,7 @@ export default function PlayPage() {
           }, 1000);
 
         } else {
-          toast({ title: 'AI has no moves!', description: 'Your turn.' });
+          toast({ title: 'A IA não tem jogadas!', description: 'É a sua vez.' });
           setTurn('player');
           setGameState('playing');
         }
@@ -216,7 +216,7 @@ export default function PlayPage() {
 
       return () => clearTimeout(aiTurn);
     }
-  }, [gameState, turn, board, gridSize, checkEndGame, toast]);
+  }, [gameState, turn, board, gridSize, checkEndGame, toast, language]);
 
   if (gameState === 'setup') {
     return <GameSetup onStart={handleGameStart} />;
@@ -226,7 +226,7 @@ export default function PlayPage() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="text-lg text-muted-foreground">Generating your battlefield...</p>
+        <p className="text-lg text-muted-foreground">A gerar o seu campo de batalha...</p>
       </div>
     );
   }
@@ -236,7 +236,7 @@ export default function PlayPage() {
       <div className="w-full max-w-7xl">
         <header className="flex justify-between items-center mb-4">
           <Link href="/" passHref>
-            <Button variant="outline">Back to Menu</Button>
+            <Button variant="outline">Voltar ao Menu</Button>
           </Link>
           <h1 className="text-3xl font-bold text-primary hidden sm:block">Tile Takeover</h1>
           <Scoreboard scores={scores} turn={turn} />
@@ -252,7 +252,7 @@ export default function PlayPage() {
           {(gameState === 'ai_thinking' && turn === 'ai') && (
             <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex flex-col items-center justify-center z-10 rounded-lg">
                 <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                <p className="mt-4 text-xl font-semibold">AI is thinking...</p>
+                <p className="mt-4 text-xl font-semibold">A IA está a pensar...</p>
             </div>
           )}
         </main>

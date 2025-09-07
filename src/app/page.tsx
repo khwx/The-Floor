@@ -11,7 +11,7 @@ export default function Home() {
           Tile Takeover
         </h1>
         <p className="mt-4 text-xl text-foreground/80 max-w-2xl mx-auto">
-          A strategic trivia game to conquer the floor. Challenge your knowledge, claim your territory.
+          Um jogo de trivia estratégico para conquistar o tabuleiro. Desafie os seus conhecimentos, reclame o seu território.
         </p>
       </div>
 
@@ -21,18 +21,18 @@ export default function Home() {
             <div className="flex items-center gap-4">
               <Gamepad2 className="w-10 h-10 text-primary" />
               <div>
-                <CardTitle className="text-2xl">Single Player</CardTitle>
-                <CardDescription>Challenge the AI and conquer the board.</CardDescription>
+                <CardTitle className="text-2xl">Um Jogador</CardTitle>
+                <CardDescription>Desafie a IA e conquiste o tabuleiro.</CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent>
             <p className="mb-4 text-muted-foreground">
-              Test your wits in a one-on-one battle of knowledge. Can you outsmart the machine and claim the entire floor?
+              Teste os seus conhecimentos numa batalha de um contra um. Consegue ser mais esperto que a máquina e dominar o tabuleiro?
             </p>
             <Link href="/play" passHref>
               <Button className="w-full" size="lg">
-                Play Now
+                Jogar Agora
               </Button>
             </Link>
           </CardContent>
@@ -43,23 +43,23 @@ export default function Home() {
             <div className="flex items-center gap-4">
               <Users className="w-10 h-10 text-muted-foreground" />
               <div>
-                <CardTitle className="text-2xl text-muted-foreground">Team Play</CardTitle>
-                <CardDescription>Assemble your team for victory.</CardDescription>
+                <CardTitle className="text-2xl text-muted-foreground">Jogo em Equipa</CardTitle>
+                <CardDescription>Reúna a sua equipa para a vitória.</CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent>
              <p className="mb-4 text-muted-foreground">
-              Team up with friends and compete against AI-controlled teams. Coordination is key to dominating the floor.
+              Junte-se a amigos e compita contra equipas controladas pela IA. A coordenação é a chave para dominar o tabuleiro.
             </p>
             <Button className="w-full" size="lg" disabled>
-              Coming Soon
+              Brevemente
             </Button>
           </CardContent>
         </Card>
       </div>
        <footer className="mt-16 text-center text-muted-foreground text-sm">
-        <p>Inspired by the game show "The Floor".</p>
+        <p>Inspirado no programa de TV "The Floor".</p>
       </footer>
     </main>
   );
