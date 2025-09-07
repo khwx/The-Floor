@@ -14,6 +14,7 @@ import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 
 type GameState = 'setup' | 'playing' | 'ai_thinking' | 'question' | 'duel' | 'finished';
+const DUEL_TIME = 45;
 
 const getGridSize = (territoryCount: number): { rows: number, cols: number } => {
   if (territoryCount <= 0) return { rows: 0, cols: 0 };
@@ -106,9 +107,13 @@ export default function PlayPage() {
     const questionTheme = tile.theme;
 
     setActiveTile(tile);
-    setGameState('ai_thinking'); // Show loader while fetching question
+    setGameState('ai_thinking'); // Show loader while fetching question(s)
     
-    const questionResult = await generateQuestion(questionTheme, language);
+    // For a duel, fetch all questions for that theme. For unowned, just one.
+    const questionCount = isDuel ? board.filter(t => t.owner === 'ai' && t.theme === questionTheme).length : 1;
+    
+    const questionResult = await generateQuestion(questionTheme, language, questionCount);
+
     if ('error' in questionResult) {
         toast({
             title: 'Falha ao obter pergunta',
@@ -120,22 +125,21 @@ export default function PlayPage() {
         return;
     }
     
-    setActiveQuestion(questionResult);
+    setActiveQuestion(questionResult[0]);
 
     if (isDuel) {
         toast({
             title: `Duelo iniciado!`,
-            description: `Você desafia a IA. A pergunta será sobre o tema do território dela: "${questionTheme}".`,
+            description: `Você desafia a IA. Tem ${DUEL_TIME} segundos para conquistar o tema "${questionTheme}".`,
         });
         setGameState('duel');
         
         setDuel({
             challenger: 'player',
             defender: 'ai',
-            timeRemaining: 45,
-            questions: [questionResult], // Simplified for now
+            timeRemaining: DUEL_TIME,
+            questions: questionResult,
             activeQuestionIndex: 0,
-            turn: 'challenger'
         });
 
     } else { // Unowned tile
@@ -146,21 +150,40 @@ export default function PlayPage() {
   const handleAnswer = (correct: boolean) => {
     if (!activeTile) return;
 
+    if (gameState === 'duel' && duel) {
+      if (correct) {
+        const nextQuestionIndex = duel.activeQuestionIndex + 1;
+        if (nextQuestionIndex < duel.questions.length) {
+          // More questions in the duel, move to the next one
+          setActiveQuestion(duel.questions[nextQuestionIndex]);
+          setDuel({ ...duel, activeQuestionIndex: nextQuestionIndex });
+          return; // Stay in the duel
+        }
+        // Last question answered correctly, player wins the duel
+      }
+      // If answer is incorrect or it was the last question, duel ends.
+    }
+    
+    // Determine winner of the turn/duel
     const winnerOfTurn = correct ? turn : (turn === 'player' ? 'ai' : 'player');
     
     let newBoard = [...board];
     
-    if (activeTile.owner === 'unowned') {
-        if (winnerOfTurn === turn) {
-            newBoard = board.map(t =>
-              t.id === activeTile.id ? { ...t, owner: winnerOfTurn } : t
-            );
-        }
-    } else { // It's a duel
-      const loserOfDuel = winnerOfTurn === 'player' ? 'ai' : 'player';
+    // Unowned tile conquest
+    if (activeTile.owner === 'unowned' && winnerOfTurn === turn) {
+        newBoard = board.map(t =>
+          t.id === activeTile.id ? { ...t, owner: winnerOfTurn } : t
+        );
+    }
+    
+    // Duel conquest
+    if (activeTile.owner !== 'unowned' && winnerOfTurn === turn) {
+      const loserOfDuel = turn === 'player' ? 'ai' : 'player';
+      const conqueredTheme = activeTile.theme;
       
       newBoard = board.map(t => {
-        if (t.owner === loserOfDuel) {
+        // The winner takes all tiles of the conquered theme from the loser
+        if (t.owner === loserOfDuel && t.theme === conqueredTheme) {
           return { ...t, owner: winnerOfTurn };
         }
         return t;
@@ -177,6 +200,7 @@ export default function PlayPage() {
     if (checkEndGame(newBoard)) {
       setActiveTile(null);
       setActiveQuestion(null);
+      setDuel(null);
       return;
     }
     
@@ -239,7 +263,8 @@ export default function PlayPage() {
         clearInterval(timerRef.current);
       }
     };
-  }, [gameState, duel, handleAnswer]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState, duel]);
 
 
   useEffect(() => {
@@ -315,10 +340,10 @@ export default function PlayPage() {
                     );
                 }
             } else { // It was a duel against the player
-               const loserOfDuel = 'player';
                if (isCorrect) { // AI wins duel
+                  const conqueredTheme = bestMove!.theme;
                   newBoard = board.map(t => {
-                    if (t.owner === loserOfDuel) {
+                    if (t.owner === 'player' && t.theme === conqueredTheme) {
                       return { ...t, owner: 'ai' };
                     }
                     return t;

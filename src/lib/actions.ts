@@ -26,19 +26,24 @@ export async function generateFloor(
 
 export async function generateQuestion(
   theme: string,
-  language: string
-): Promise<Question | { error: string }> {
+  language: string,
+  count: number = 1
+): Promise<Question[] | { error: string }> {
   try {
-    const result = await generateQuestionFlow({ theme, language });
-    const imageResult = await getImageForQuery(result.imageQuery);
+    const questionPromises = Array.from({ length: count }, () => generateQuestionFlow({ theme, language }));
+    const results = await Promise.all(questionPromises);
 
-    if ('error' in imageResult) {
-      // Don't block the question if image fails, just return without it
-      console.warn(`Could not fetch image for "${result.imageQuery}": ${imageResult.error}`);
-      return result;
-    }
+    const questionsWithImages = await Promise.all(results.map(async (result) => {
+      const imageResult = await getImageForQuery(result.imageQuery);
+      if ('error' in imageResult) {
+        console.warn(`Could not fetch image for "${result.imageQuery}": ${imageResult.error}`);
+        return result;
+      }
+      return { ...result, imageUrl: imageResult.url };
+    }));
     
-    return { ...result, imageUrl: imageResult.url };
+    return questionsWithImages;
+
   } catch (e) {
     console.error(e);
     if (e instanceof Error) {
@@ -64,8 +69,15 @@ export async function getImageForQuery(query: string): Promise<{ url: string } |
 
     const data = await response.json();
     if (data.hits && data.hits.length > 0) {
-      return { url: data.hits[0].webformatURL };
+      // Pick a random image from the results
+      const randomHit = data.hits[Math.floor(Math.random() * data.hits.length)];
+      return { url: randomHit.webformatURL };
     } else {
+      // Fallback search with just the first word if no results
+       const firstWord = query.split(' ')[0];
+       if (firstWord !== query) {
+         return getImageForQuery(firstWord);
+       }
       return { error: 'No images found for this query on Pixabay.' };
     }
   } catch (e) {

@@ -26,7 +26,4 @@ export type DuelState = {
   timeRemaining: number;
   questions: Question[];
   activeQuestionIndex: number;
-  turn: 'challenger' | 'defender';
 };
-
-    
