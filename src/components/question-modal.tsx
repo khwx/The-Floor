@@ -63,10 +63,15 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel 
     setIsAnswered(true);
     const isCorrect = selectedOption === question.answer;
 
-    setTimeout(() => {
+    // For duels, we don't wait. The parent component will show the next question.
+    if (duel) {
+      onAnswer(isCorrect);
+    } else {
+       // For single questions, we wait for visual feedback
+       setTimeout(() => {
         onAnswer(isCorrect);
-        // Do not reset isAnswered here, it will be reset by the question useEffect
-    }, 1500); // wait for visual feedback
+      }, 1500);
+    }
   };
 
   const getOptionClass = (option: string) => {

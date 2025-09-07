@@ -21,7 +21,10 @@ export type Question = {
 };
 
 export type DuelState = {
+  challenger: Player;
   questions: Question[];
   activeQuestionIndex: number;
+  playerCorrect: number;
+  aiCorrect: number;
   timeRemaining: number;
 };
