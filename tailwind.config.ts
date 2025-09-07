@@ -88,10 +88,21 @@ export default {
             height: '0',
           },
         },
+        'tile-conquer': {
+          '0%': { transform: 'scale(1)' },
+          '50%': { transform: 'scale(1.15)' },
+          '100%': { transform: 'scale(1)' },
+        },
+        'tile-spawn': {
+          'from': { opacity: '0', transform: 'scale(0.5)' },
+          'to': { opacity: '1', transform: 'scale(1)' },
+        }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'tile-conquer': 'tile-conquer 0.4s ease-in-out',
+        'tile-spawn': 'tile-spawn 0.4s ease-out',
       },
     },
   },
