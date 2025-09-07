@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { useActionState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,8 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { createGameSession, joinGameSession } from '@/lib/actions';
-import { useFormState, useFormStatus } from 'react-dom';
-import { Gamepad2, Loader2, Play, Users } from 'lucide-react';
+import { useFormStatus } from 'react-dom';
+import { Loader2, Play, Users } from 'lucide-react';
 import type { GameDifficulty } from '@/lib/types';
 
 function SubmitButton({ text, loadingText }: { text: string; loadingText: string }) {
@@ -30,7 +31,7 @@ function SubmitButton({ text, loadingText }: { text: string; loadingText: string
 export function GameLobby() {
     const [difficulty, setDifficulty] = useState<GameDifficulty>('easy');
     const [language, setLanguage] = useState('Portuguese');
-    const [joinGameError, joinGameAction] = useFormState(joinGameSession, undefined);
+    const [joinGameError, joinGameAction] = useActionState(joinGameSession, undefined);
 
   return (
     <div className="space-y-6">
