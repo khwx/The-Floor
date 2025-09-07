@@ -13,17 +13,18 @@ type GameSetupProps = {
   onStart: (difficulty: GameDifficulty, language: string, startingPlayer: Player) => void;
   lastDifficulty?: GameDifficulty;
   lastLanguage?: string;
-  mode: 'singleplayer' | 'multiplayer';
+  mode?: 'singleplayer' | 'multiplayer';
 };
 
-export function GameSetup({ onStart, lastDifficulty, lastLanguage, mode }: GameSetupProps) {
+export function GameSetup({ onStart, lastDifficulty, lastLanguage, mode = 'singleplayer' }: GameSetupProps) {
   const [difficulty, setDifficulty] = useState<GameDifficulty>('easy');
   const [language, setLanguage] = useState<string>('Portuguese');
   const [startingPlayer, setStartingPlayer] = useState<Player>('player');
 
   useEffect(() => {
-    const savedDifficulty = localStorage.getItem(`tile-takeover-difficulty-${mode}`) as GameDifficulty;
-    const savedLanguage = localStorage.getItem(`tile-takeover-language-${mode}`);
+    const storageSuffix = mode === 'multiplayer' ? '-multiplayer' : '';
+    const savedDifficulty = localStorage.getItem(`tile-takeover-difficulty${storageSuffix}`) as GameDifficulty;
+    const savedLanguage = localStorage.getItem(`tile-takeover-language${storageSuffix}`);
 
     if (savedDifficulty) {
       setDifficulty(savedDifficulty);

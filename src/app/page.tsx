@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Gamepad2, Users } from "lucide-react";
 import Link from "next/link";
+import { Gamepad2 } from "lucide-react";
+import { GameLobby } from "@/components/game-lobby";
 
 export default function Home() {
   return (
@@ -15,51 +15,19 @@ export default function Home() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
-        <Card className="hover:shadow-primary/20 hover:shadow-lg transition-shadow duration-300 transform hover:-translate-y-1">
-          <CardHeader>
-            <div className="flex items-center gap-4">
-              <Gamepad2 className="w-10 h-10 text-primary" />
-              <div>
-                <CardTitle className="text-2xl">Um Jogador</CardTitle>
-                <CardDescription>Desafie a IA e conquiste o tabuleiro.</CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-4 text-muted-foreground">
-              Teste os seus conhecimentos numa batalha de um contra um. Consegue ser mais esperto que a máquina e dominar o tabuleiro?
-            </p>
-            <Link href="/play" passHref>
-              <Button className="w-full" size="lg">
-                Jogar Agora
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-primary/20 hover:shadow-lg transition-shadow duration-300 transform hover:-translate-y-1">
-           <CardHeader>
-            <div className="flex items-center gap-4">
-              <Users className="w-10 h-10 text-primary" />
-              <div>
-                <CardTitle className="text-2xl">Jogo em Equipa</CardTitle>
-                <CardDescription>Reúna a sua equipa para a vitória.</CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-             <p className="mb-4 text-muted-foreground">
-              Junte-se a um amigo no mesmo dispositivo e compita pela dominação do tabuleiro. Quem sabe mais?
-            </p>
-            <Link href="/play/multiplayer" passHref>
-              <Button className="w-full" size="lg">
-                Jogar Agora
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+      <div className="w-full max-w-md mx-auto">
+        <GameLobby />
       </div>
+
+      <div className="mt-8 text-center w-full max-w-md mx-auto border-t pt-8">
+         <Link href="/play" passHref>
+            <Button variant="secondary" className="w-full" size="lg">
+              <Gamepad2 className="mr-2 h-5 w-5" />
+              Jogar Sozinho (vs. IA)
+            </Button>
+          </Link>
+      </div>
+
        <footer className="mt-16 text-center text-muted-foreground text-sm">
         <p>Inspirado no programa de TV "The Floor".</p>
       </footer>
