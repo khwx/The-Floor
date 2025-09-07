@@ -52,7 +52,7 @@ export function Tile({ tile, isClickable, onClick }: TileProps) {
       style={{ animationDelay: `${tile.id * 20}ms`, animationFillMode: 'forwards' }}
     >
       <ThemeIcon className={cn('h-1/3 w-1/3', iconColorClass)} />
-      <span className={cn('text-xs font-medium text-center truncate w-full mt-1', iconColorClass, 'capitalize')}>
+      <span className={cn('text-xs font-medium text-center truncate w-full mt-1 capitalize', iconColorClass)}>
         {tile.theme}
       </span>
       {!isClickable && tile.owner === 'unowned' && (

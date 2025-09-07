@@ -163,38 +163,41 @@ export default function PlayPage() {
     if (gameState === 'ai_thinking' && turn === 'ai' && board.length > 0) {
       const aiTurn = setTimeout(() => {
         const aiTiles = board.filter(t => t.owner === 'ai');
-        const validMoves: TileData[] = [];
         const { cols } = gridSize;
 
-        aiTiles.forEach(aiTile => {
-          const {id} = aiTile;
-          const r = Math.floor(id / cols);
-          
-          const neighbors = [id - cols, id + cols, id - 1, id + 1];
-
-          neighbors.forEach(nId => {
-            const nRow = Math.floor(nId / cols);
-            if (nId >= 0 && nId < board.length && (nRow === r || Math.abs(id - nId) === cols)) {
-               const neighborTile = board[nId];
-               if (neighborTile.owner === 'unowned' && !validMoves.find(m => m.id === nId)) {
-                validMoves.push(neighborTile);
-              }
-            }
+        const getNeighbors = (tileId: number) => {
+          const r = Math.floor(tileId / cols);
+          const neighbors = [tileId - cols, tileId + cols, tileId - 1, tileId + 1];
+          return neighbors.filter(nId => {
+              const nRow = Math.floor(nId / cols);
+              return nId >= 0 && nId < board.length && (nRow === r || Math.abs(tileId - nId) === cols);
           });
+        };
+
+        const validMoves = board.filter(tile => {
+          if (tile.owner !== 'unowned') return false;
+          const neighbors = getNeighbors(tile.id);
+          return neighbors.some(nId => board[nId].owner === 'ai');
         });
 
         if (validMoves.length > 0) {
-          const move = validMoves[Math.floor(Math.random() * validMoves.length)];
+          // Find the move with the most adjacent AI tiles to expand strategically
+          const bestMove = validMoves.reduce((best, move) => {
+              const bestNeighbors = getNeighbors(best.id).filter(nId => board[nId].owner === 'ai').length;
+              const moveNeighbors = getNeighbors(move.id).filter(nId => board[nId].owner === 'ai').length;
+              return moveNeighbors > bestNeighbors ? move : best;
+          });
+
           const isCorrect = Math.random() > 0.25; // AI has 75% chance
           
           toast({
-              title: `A IA desafia "${move.theme}"`,
+              title: `A IA desafia "${bestMove.theme}"`,
               description: isCorrect ? 'A IA respondeu corretamente!' : 'A IA falhou o desafio.',
           });
           
           setTimeout(() => {
             if (isCorrect) {
-              const newBoard = board.map(t => t.id === move.id ? { ...t, owner: 'ai' } : t);
+              const newBoard = board.map(t => t.id === bestMove.id ? { ...t, owner: 'ai' } : t);
               setBoard(newBoard);
               const newScores = {
                 player: newBoard.filter(t => t.owner === 'player').length,
