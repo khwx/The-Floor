@@ -15,7 +15,7 @@ export default function Home() {
         </p>
       </div>
 
-      <div className="w-full max-w-md mx-auto space-y-8">
+      <div className="w-full max-w-md mx-auto space-y-6">
         <Link href="/play" passHref>
           <Button variant="secondary" className="w-full" size="lg">
             <Gamepad2 className="mr-2 h-5 w-5" />
