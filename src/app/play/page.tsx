@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 
 type GameState = 'setup' | 'playing' | 'ai_thinking' | 'question' | 'duel' | 'finished';
 const DUEL_TIME = 45;
+const MIN_DUEL_QUESTIONS = 5;
 
 const getGridSize = (territoryCount: number): { rows: number, cols: number } => {
   if (territoryCount <= 0) return { rows: 0, cols: 0 };
@@ -111,7 +112,8 @@ export default function PlayPage() {
     setGameState('ai_thinking'); // Show loader while fetching question(s)
     
     // For a duel, fetch questions for all tiles of that theme. For unowned, just one.
-    const questionCount = isDuel ? board.filter(t => t.owner === 'ai' && t.theme === questionTheme).length : 1;
+    const territoryCount = isDuel ? board.filter(t => t.owner === 'ai' && t.theme === questionTheme).length : 1;
+    const questionCount = isDuel ? Math.max(MIN_DUEL_QUESTIONS, territoryCount) : 1;
     
     toast({
         title: 'A preparar o seu desafio...',
@@ -163,8 +165,6 @@ export default function PlayPage() {
         if (nextQuestionIndex < duel.questions.length) {
           setActiveQuestion(duel.questions[nextQuestionIndex]);
           setDuel({ ...duel, activeQuestionIndex: nextQuestionIndex });
-          // Restart timer for the next question? For now, we keep a global duel timer.
-          // Let's re-engage the main timer.
           startDuelTimer();
           return; // Stay in the duel, don't proceed to board update yet.
         }
@@ -172,7 +172,6 @@ export default function PlayPage() {
         // The normal flow will handle the win.
       } else {
         // Incorrect answer or timeout ends the duel immediately. Player loses.
-        // The board state does not change, just the turn.
         endTurn(false);
         return;
       }
@@ -197,7 +196,7 @@ export default function PlayPage() {
       }
       
       // Duel conquest
-      if (activeTile.owner !== 'unowned') {
+      if (activeTile.owner !== 'unowned' && activeTile.owner !== 'player') {
         const loserOfDuel = turn === 'player' ? 'ai' : 'player';
         const conqueredTheme = activeTile.theme;
         
@@ -318,11 +317,13 @@ export default function PlayPage() {
             if (!bestMove) {
                 const unownedTargets = possibleTargets.filter(t => t.owner === 'unowned');
                  // Simple logic: pick the unowned tile with the most AI neighbors
-                 bestMove = unownedTargets.reduce((best, move) => {
-                    const bestNeighbors = getNeighbors(best.id, cols, rows).filter(nId => board[nId].owner === 'ai').length;
-                    const moveNeighbors = getNeighbors(move.id, cols, rows).filter(nId => board[nId].owner === 'ai').length;
-                    return moveNeighbors > bestNeighbors ? move : best;
-                }, unownedTargets[0]);
+                 if (unownedTargets.length > 0) {
+                     bestMove = unownedTargets.reduce((best, move) => {
+                        const bestNeighbors = getNeighbors(best.id, cols, rows).filter(nId => board[nId].owner === 'ai').length;
+                        const moveNeighbors = getNeighbors(move.id, cols, rows).filter(nId => board[nId].owner === 'ai').length;
+                        return moveNeighbors > bestNeighbors ? move : best;
+                    }, unownedTargets[0]);
+                 }
             }
             if (!bestMove) { 
                  toast({ title: 'A IA não tem jogadas!', description: 'É a sua vez.' });
@@ -336,7 +337,8 @@ export default function PlayPage() {
           
           let toastDescription;
           if(isDuel) {
-            const numQuestions = board.filter(t => t.owner === 'player' && t.theme === theme).length;
+            const territoryCount = board.filter(t => t.owner === 'player' && t.theme === theme).length;
+            const numQuestions = Math.max(MIN_DUEL_QUESTIONS, territoryCount);
             toastDescription = `A IA desafia o seu território de "${theme}" e precisa de responder a ${numQuestions} pergunta(s).`;
           } else {
             toastDescription = `A IA tenta conquistar o território neutro de "${theme}".`;

@@ -65,6 +65,7 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel 
 
     setTimeout(() => {
         onAnswer(isCorrect);
+        // Do not reset isAnswered here, it will be reset by the question useEffect
     }, 1500); // wait for visual feedback
   };
 
