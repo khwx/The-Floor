@@ -81,7 +81,7 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, defen
            )}
           <DialogDescription>
             {defendingTile
-              ? `A pergunta é sobre o seu tema "${defendingTile.theme}" para conquistar a casa "${tile.theme}".`
+              ? `A pergunta é sobre o tema do território da IA: "${defendingTile.theme}".`
               : 'Responda à pergunta abaixo para conquistar a casa.'}
           </DialogDescription>
         </DialogHeader>
