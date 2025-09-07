@@ -46,12 +46,12 @@ export function GameBoard({ board, gridSize, onTileClick, playerTurn }: GameBoar
     >
       {board.map((tile) => {
         // Player can click on unowned tiles adjacent to their own,
-        // or any AI-owned tile.
+        // or any AI-owned tile to start a duel.
         const isAdjacent = getIsAdjacentToPlayer(tile.id);
         const isClickable =
           playerTurn &&
           tile.owner !== 'player' &&
-          isAdjacent;
+          (tile.owner === 'ai' || (tile.owner === 'unowned' && isAdjacent));
         
         return (
           <Tile
