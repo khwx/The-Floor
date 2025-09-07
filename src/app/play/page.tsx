@@ -156,7 +156,7 @@ export default function PlayPage() {
     let wasTurnSuccessful: boolean;
     if (finalDuelState.challenger === 'player') {
       // Challenger must have more correct answers to win
-      wasTurnSuccessful = finalDuelalState.playerCorrect > finalDuelState.aiCorrect;
+      wasTurnSuccessful = finalDuelState.playerCorrect > finalDuelState.aiCorrect;
     } else { // AI is challenger
       wasTurnSuccessful = finalDuelState.aiCorrect > finalDuelState.playerCorrect;
     }
