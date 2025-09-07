@@ -1,16 +1,13 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
-import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { GameState, Player, PlayerRole } from '@/lib/types';
+import type { GameState, PlayerRole } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { Scoreboard } from '@/components/scoreboard';
 import { GameBoard } from '@/components/game-board';
 import { useToast } from '@/hooks/use-toast';
-import { handleTileClick as handleTileClickAction, checkEndGame } from '@/lib/actions';
-import { QuestionModal } from '@/components/question-modal';
-import { GameOverDialog } from '@/components/game-over-dialog';
 
 const getGridSize = (territoryCount: number): { rows: number, cols: number } => {
   if (territoryCount <= 0) return { rows: 0, cols: 0 };
@@ -35,7 +32,6 @@ export default function MultiplayerGamePage({ params }: { params: { gameId: stri
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [currentPlayerRole, setCurrentPlayerRole] = useState<PlayerRole | null>(null);
-  const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -85,86 +81,6 @@ export default function MultiplayerGamePage({ params }: { params: { gameId: stri
     return () => unsubscribe();
   }, [gameId]);
 
-
-  const handleTileClick = (tileId: number) => {
-    if (!gameState || !currentPlayerRole || gameState.turn !== currentPlayerRole) return;
-
-    startTransition(async () => {
-      const result = await handleTileClickAction(gameId, tileId, currentPlayerRole);
-       if (result?.error) {
-        toast({
-          title: 'Erro',
-          description: result.error,
-          variant: 'destructive',
-        });
-      }
-    });
-  };
-
-  const handleAnswer = async (correct: boolean) => {
-      if (!gameState || !currentPlayerRole || !gameState.activeQuestion) return;
-
-      const { challenger, tile } = gameState.activeQuestion;
-
-      const isDuel = tile.owner !== 'unowned' && tile.owner !== challenger;
-
-      try {
-        let updates: Partial<GameState> = {};
-        
-        if (isDuel && gameState.duelState) {
-          // Handle Duel Logic
-          const duel = gameState.duelState;
-          const turnPlayer = duel.activeQuestionIndex % 2 === 0 ? duel.challenger : (duel.challenger === 'player1' ? 'player2' : 'player1');
-
-          if (turnPlayer !== currentPlayerRole) return; // Not your turn to answer
-
-          const newScores = { ...duel.scores };
-          if(correct) {
-            newScores[turnPlayer]++;
-          }
-
-          const nextQuestionIndex = duel.activeQuestionIndex + 1;
-
-          if (nextQuestionIndex >= duel.questions.length) {
-            // End of duel
-            const challengerWon = newScores[duel.challenger] > newScores[duel.challenger === 'player1' ? 'player2' : 'player1'];
-            await checkEndGame(gameId, challengerWon, duel.challenger, tile.id);
-          } else {
-            // Next question
-             updates = {
-                'duelState.activeQuestionIndex': nextQuestionIndex,
-                'duelState.scores': newScores
-             }
-             await updateDoc(doc(db, 'games', gameId), updates);
-          }
-        } else {
-          // Handle Normal Turn
-           await checkEndGame(gameId, correct, challenger, tile.id);
-        }
-      } catch (err) {
-        console.error(err);
-        toast({ title: 'Erro', description: 'Não foi possível processar a sua resposta.', variant: 'destructive'});
-      }
-  };
-
-  const handleModalClose = () => {
-      if (!gameState || !currentPlayerRole) return;
-      if (gameState.turn !== currentPlayerRole) return;
-      
-      const isMyTurnToAnswer = gameState.activeQuestion?.challenger === currentPlayerRole;
-
-      if(isMyTurnToAnswer) {
-        handleAnswer(false);
-      }
-  }
-
-  const resetGame = async () => {
-    // This should ideally be a server-side action to reset the game state
-    // For now, it will navigate to the lobby
-    window.location.href = '/play/multiplayer';
-  }
-
-
   if (error) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 text-destructive p-4 text-center">
@@ -185,8 +101,6 @@ export default function MultiplayerGamePage({ params }: { params: { gameId: stri
 
   const { rows, cols } = getGridSize(gameState.board.length);
   const isMyTurn = gameState.turn === currentPlayerRole && gameState.status === 'playing';
-  
-  const question = gameState.activeQuestion ? gameState.duelState?.questions[gameState.duelState.activeQuestionIndex] ?? gameState.activeQuestion.question : null;
 
   return (
     <div className="flex min-h-screen flex-col items-center p-4 sm:p-6 md:p-8">
@@ -203,7 +117,7 @@ export default function MultiplayerGamePage({ params }: { params: { gameId: stri
            <GameBoard
             board={gameState.board}
             gridSize={{ rows, cols }}
-            onTileClick={(tile) => handleTileClick(tile.id)}
+            onTileClick={(tile) => console.log('Tile clicked:', tile.id)}
             playerTurn={isMyTurn}
             currentPlayer={currentPlayerRole || 'player1'}
           />
@@ -214,28 +128,8 @@ export default function MultiplayerGamePage({ params }: { params: { gameId: stri
                  <p className="mt-2">Partilhe o código <strong className="text-accent">{gameId}</strong> com um amigo.</p>
             </div>
           )}
-          {(isPending || gameState.status === 'processing') && (
-             <div className="absolute inset-0 bg-black/10 flex flex-col items-center justify-center z-10 rounded-lg pointer-events-none">
-                 <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            </div>
-          )}
         </main>
       </div>
-      <QuestionModal
-        isOpen={!!gameState.activeQuestion}
-        tile={gameState.activeQuestion?.tile || null}
-        question={question}
-        onAnswer={handleAnswer}
-        onClose={handleModalClose}
-        duel={gameState.duelState || null}
-        currentPlayer={gameState.turn}
-      />
-       <GameOverDialog
-        isOpen={gameState.status === 'finished'}
-        winner={gameState.winner || null}
-        scores={gameState.scores}
-        onPlayAgain={resetGame}
-      />
     </div>
   );
 }
