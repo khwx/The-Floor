@@ -9,24 +9,22 @@ type GameBoardProps = {
 };
 
 export function GameBoard({ board, gridSize, onTileClick, playerTurn }: GameBoardProps) {
+  
   const getAdjacentPlayerTiles = (tileId: number): boolean => {
     const playerTiles = board.filter(t => t.owner === 'player').map(t => t.id);
     const { cols } = gridSize;
     const r = Math.floor(tileId / cols);
+    const c = tileId % cols;
     
-    const neighbors = [
-      tileId - cols, // top
-      tileId + cols, // bottom
-      tileId - 1,    // left
-      tileId + 1,    // right
-    ];
+    const neighbors = [];
+    if (r > 0) neighbors.push(tileId - cols); // top
+    if (r < gridSize.rows - 1) neighbors.push(tileId + cols); // bottom
+    if (c > 0) neighbors.push(tileId - 1); // left
+    if (c < cols - 1) neighbors.push(tileId + 1); // right
 
     for (const neighborId of neighbors) {
       if (playerTiles.includes(neighborId)) {
-        const nRow = Math.floor(neighborId / cols);
-         if (nRow === r || Math.abs(tileId - neighborId) === cols) {
-            return true;
-         }
+        return true;
       }
     }
     return false;

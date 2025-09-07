@@ -84,11 +84,11 @@ export default function PlayPage() {
   };
 
   const checkEndGame = useCallback((newBoard: TileData[]) => {
-    const unownedTiles = newBoard.filter(tile => tile.owner === 'unowned').length;
-    if (unownedTiles === 0) {
-      const playerScore = newBoard.filter(tile => tile.owner === 'player').length;
-      const aiScore = newBoard.filter(tile => tile.owner === 'ai').length;
-      if (playerScore > aiScore) setWinner('player');
+    const playerScore = newBoard.filter(tile => tile.owner === 'player').length;
+    const aiScore = newBoard.filter(tile => tile.owner === 'ai').length;
+
+    if (playerScore === 0 || aiScore === 0 || playerScore + aiScore === newBoard.length) {
+       if (playerScore > aiScore) setWinner('player');
       else if (aiScore > playerScore) setWinner('ai');
       else setWinner('draw');
       setGameState('finished');
@@ -99,30 +99,49 @@ export default function PlayPage() {
 
   const handleTileClick = async (tile: TileData) => {
     if (gameState !== 'playing' || turn !== 'player') return;
-    setActiveTile(tile);
-    setGameState('ai_thinking'); // Use ai_thinking as a loading state
-    const questionResult = await generateQuestion(tile.theme, language);
-    if ('error' in questionResult) {
-      toast({
-        title: 'Falha ao obter pergunta',
-        description: questionResult.error,
-        variant: 'destructive',
-      });
-      setGameState('playing');
-      setActiveTile(null);
-      return;
-    }
-    setActiveQuestion(questionResult);
-    setGameState('question');
-  };
+    
+    const opponent: Player = 'ai';
+    const opponentTiles = board.filter(t => t.owner === opponent && t.theme === tile.theme);
 
+    // This logic is for when we challenge an unowned tile, but later we might challenge owned tiles
+    if (tile.owner === 'unowned') {
+        setActiveTile(tile);
+        setGameState('ai_thinking'); // Use ai_thinking as a loading state
+        const questionResult = await generateQuestion(tile.theme, language);
+        if ('error' in questionResult) {
+            toast({
+            title: 'Falha ao obter pergunta',
+            description: questionResult.error,
+            variant: 'destructive',
+            });
+            setGameState('playing');
+            setActiveTile(null);
+            return;
+        }
+        setActiveQuestion(questionResult);
+        setGameState('question');
+    }
+  };
+  
   const handleAnswer = (correct: boolean) => {
     if (!activeTile) return;
 
     if (correct) {
-      const newBoard = board.map(t =>
-        t.id === activeTile.id ? { ...t, owner: turn } : t
-      );
+      const winnerOfDuel = turn;
+      const themeToConquer = activeTile.theme;
+      
+      const newBoard = board.map(t => {
+        // The challenged tile is won
+        if (t.id === activeTile.id) {
+          return { ...t, owner: winnerOfDuel };
+        }
+        // All other tiles of the same theme are also won
+        if (t.theme === themeToConquer) {
+          return { ...t, owner: winnerOfDuel };
+        }
+        return t;
+      });
+
       setBoard(newBoard);
       const newScores = {
         player: newBoard.filter(t => t.owner === 'player').length,
@@ -141,6 +160,7 @@ export default function PlayPage() {
     setTurn(turn === 'player' ? 'ai' : 'player');
     setGameState('ai_thinking');
   };
+
 
   const handleModalClose = () => {
     // Player closes modal without answering, counts as wrong answer
@@ -162,27 +182,34 @@ export default function PlayPage() {
   useEffect(() => {
     if (gameState === 'ai_thinking' && turn === 'ai' && board.length > 0) {
       const aiTurn = setTimeout(() => {
-        const aiTiles = board.filter(t => t.owner === 'ai');
         const { cols } = gridSize;
 
         const getNeighbors = (tileId: number) => {
           const r = Math.floor(tileId / cols);
-          const neighbors = [tileId - cols, tileId + cols, tileId - 1, tileId + 1];
-          return neighbors.filter(nId => {
-              const nRow = Math.floor(nId / cols);
-              return nId >= 0 && nId < board.length && (nRow === r || Math.abs(tileId - nId) === cols);
-          });
+          const c = tileId % cols;
+          const neighbors = [];
+          if (r > 0) neighbors.push(tileId - cols); // top
+          if (r < gridSize.rows - 1) neighbors.push(tileId + cols); // bottom
+          if (c > 0) neighbors.push(tileId - 1); // left
+          if (c < cols - 1) neighbors.push(tileId + 1); // right
+          return neighbors;
         };
+        
+        const aiTiles = board.filter(t => t.owner === 'ai');
+        let possibleTargets: TileData[] = [];
 
-        const validMoves = board.filter(tile => {
-          if (tile.owner !== 'unowned') return false;
-          const neighbors = getNeighbors(tile.id);
-          return neighbors.some(nId => board[nId].owner === 'ai');
-        });
+        for (const aiTile of aiTiles) {
+            const neighbors = getNeighbors(aiTile.id);
+            for (const neighborId of neighbors) {
+                const neighborTile = board[neighborId];
+                if (neighborTile.owner === 'unowned' && !possibleTargets.some(t => t.id === neighborId)) {
+                    possibleTargets.push(neighborTile);
+                }
+            }
+        }
 
-        if (validMoves.length > 0) {
-          // Find the move with the most adjacent AI tiles to expand strategically
-          const bestMove = validMoves.reduce((best, move) => {
+        if (possibleTargets.length > 0) {
+          const bestMove = possibleTargets.reduce((best, move) => {
               const bestNeighbors = getNeighbors(best.id).filter(nId => board[nId].owner === 'ai').length;
               const moveNeighbors = getNeighbors(move.id).filter(nId => board[nId].owner === 'ai').length;
               return moveNeighbors > bestNeighbors ? move : best;
@@ -197,7 +224,14 @@ export default function PlayPage() {
           
           setTimeout(() => {
             if (isCorrect) {
-              const newBoard = board.map(t => t.id === bestMove.id ? { ...t, owner: 'ai' } : t);
+              const themeToConquer = bestMove.theme;
+              const newBoard = board.map(t => {
+                if (t.theme === themeToConquer) {
+                  return { ...t, owner: 'ai' };
+                }
+                return t;
+              });
+
               setBoard(newBoard);
               const newScores = {
                 player: newBoard.filter(t => t.owner === 'player').length,
