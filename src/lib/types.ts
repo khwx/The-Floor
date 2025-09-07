@@ -19,3 +19,14 @@ export type Question = {
   imageQuery: string;
   imageUrl?: string;
 };
+
+export type DuelState = {
+  challenger: Player;
+  defender: Player;
+  timeRemaining: number;
+  questions: Question[];
+  activeQuestionIndex: number;
+  turn: 'challenger' | 'defender';
+};
+
+    

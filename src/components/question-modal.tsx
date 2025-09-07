@@ -8,11 +8,10 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import type { TileData, Question } from '@/lib/types';
+import type { TileData, Question, DuelState } from '@/lib/types';
 import { getIconForTheme } from './icons';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Swords, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Swords } from 'lucide-react';
 import Image from 'next/image';
 
 type QuestionModalProps = {
@@ -21,10 +20,10 @@ type QuestionModalProps = {
   question: Question | null;
   onAnswer: (correct: boolean) => void;
   onClose: () => void;
-  defendingTile?: TileData | null;
+  duel?: DuelState | null;
 };
 
-export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, defendingTile }: QuestionModalProps) {
+export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel }: QuestionModalProps) {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
 
@@ -40,7 +39,7 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, defen
 
   if (!tile) return null;
   
-  const questionTile = defendingTile || tile;
+  const questionTile = tile;
   const ThemeIcon = getIconForTheme(questionTile.theme);
   
   const handleOptionClick = (option: string) => {
@@ -65,15 +64,23 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, defen
     return 'opacity-50';
   }
 
+  const isDuel = !!duel;
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-           {defendingTile ? (
-            <DialogTitle className="flex items-center gap-2 text-2xl">
-              <Swords className="h-6 w-6 text-primary" />
-              <span>Duelo de Temas!</span>
-            </DialogTitle>
+           {isDuel ? (
+            <div className="flex justify-between items-center">
+              <DialogTitle className="flex items-center gap-2 text-2xl">
+                <Swords className="h-6 w-6 text-primary" />
+                <span>Duelo de Temas!</span>
+              </DialogTitle>
+              <div className="flex items-center gap-2 text-2xl font-bold text-primary">
+                <Clock className="h-6 w-6" />
+                <span>{duel.timeRemaining}</span>
+              </div>
+            </div>
            ) : (
              <DialogTitle className="flex items-center gap-2 text-2xl">
                 <ThemeIcon className="h-6 w-6" />
@@ -81,8 +88,8 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, defen
              </DialogTitle>
            )}
           <DialogDescription>
-            {defendingTile
-              ? `A pergunta é sobre o tema do território da IA: "${defendingTile.theme}".`
+            {isDuel
+              ? `A pergunta é sobre o tema do território do seu adversário: "${tile.theme}".`
               : 'Responda à pergunta abaixo para conquistar a casa.'}
           </DialogDescription>
         </DialogHeader>
@@ -141,3 +148,5 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, defen
     </Dialog>
   );
 }
+
+    
