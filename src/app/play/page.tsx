@@ -39,6 +39,7 @@ const getGridSize = (territoryCount: number): { rows: number, cols: number } => 
 export default function PlayPage() {
   const [gameState, setGameState] = useState<GameState>('setup');
   const [board, setBoard] = useState<TileData[]>([]);
+  const [language, setLanguage] = useState('English');
   const [gridSize, setGridSize] = useState({ rows: 0, cols: 0 });
   const [scores, setScores] = useState({ player: 0, ai: 0 });
   const [turn, setTurn] = useState<Player>('player');
@@ -48,9 +49,10 @@ export default function PlayPage() {
 
   const { toast } = useToast();
 
-  const handleGameStart = async (difficulty: GameDifficulty) => {
+  const handleGameStart = async (difficulty: GameDifficulty, lang: string) => {
     setGameState('ai_thinking');
-    const result = await generateFloor(difficulty);
+    setLanguage(lang);
+    const result = await generateFloor(difficulty, lang);
     if ('error' in result) {
       toast({
         title: 'Error',
@@ -99,7 +101,7 @@ export default function PlayPage() {
     if (gameState !== 'playing' || turn !== 'player') return;
     setActiveTile(tile);
     setGameState('ai_thinking'); // Use ai_thinking as a loading state
-    const questionResult = await generateQuestion(tile.theme);
+    const questionResult = await generateQuestion(tile.theme, language);
     if ('error' in questionResult) {
       toast({
         title: 'Failed to get question',

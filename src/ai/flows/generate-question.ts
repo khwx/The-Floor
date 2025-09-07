@@ -13,6 +13,7 @@ import {z} from 'genkit';
 
 const GenerateQuestionInputSchema = z.object({
   theme: z.string().describe('The theme of the trivia question.'),
+  language: z.string().describe('The language for the trivia question.'),
 });
 export type GenerateQuestionInput = z.infer<typeof GenerateQuestionInputSchema>;
 
@@ -33,11 +34,12 @@ const prompt = ai.definePrompt({
   name: 'generateQuestionPrompt',
   input: {schema: GenerateQuestionInputSchema},
   output: {schema: GenerateQuestionOutputSchema},
-  prompt: `You are a trivia master. Generate a multiple-choice question for a trivia game.
+  prompt: `You are a trivia master. Generate a multiple-choice question for a trivia game in the specified language.
 
+Language: {{{language}}}
 Theme: {{{theme}}}
 
-Generate a challenging but fair multiple-choice question about the given theme.
+Generate a challenging but fair multiple-choice question about the given theme in the specified language.
 Provide 4 distinct options, with one of them being the correct answer.
 Ensure the question, options, and answer are all populated in the output.
 `,

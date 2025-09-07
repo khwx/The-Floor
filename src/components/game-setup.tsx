@@ -6,18 +6,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import type { GameDifficulty } from '@/lib/types';
-import { SlidersHorizontal } from 'lucide-react';
+import { Languages, SlidersHorizontal } from 'lucide-react';
 
 type GameSetupProps = {
-  onStart: (difficulty: GameDifficulty) => void;
+  onStart: (difficulty: GameDifficulty, language: string) => void;
 };
 
 export function GameSetup({ onStart }: GameSetupProps) {
   const [difficulty, setDifficulty] = useState<GameDifficulty>('easy');
+  const [language, setLanguage] = useState<string>('English');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onStart(difficulty);
+    onStart(difficulty, language);
   };
 
   return (
@@ -47,6 +48,22 @@ export function GameSetup({ onStart }: GameSetupProps) {
                 </SelectContent>
               </Select>
                <p className="text-sm text-muted-foreground pt-1">The difficulty determines the number and types of categories on the floor.</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="language" className="text-lg flex items-center gap-2"><Languages size={20} /> Language</Label>
+              <Select onValueChange={(value: string) => setLanguage(value)} defaultValue={language}>
+                <SelectTrigger id="language" className="w-full text-lg h-12">
+                  <SelectValue placeholder="Select language" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="English" className="text-lg">English</SelectItem>
+                  <SelectItem value="Portuguese" className="text-lg">Português</SelectItem>
+                  <SelectItem value="Spanish" className="text-lg">Español</SelectItem>
+                  <SelectItem value="French" className="text-lg">Français</SelectItem>
+                  <SelectItem value="German" className="text-lg">Deutsch</SelectItem>
+                </SelectContent>
+              </Select>
+               <p className="text-sm text-muted-foreground pt-1">The game content will be generated in the selected language.</p>
             </div>
             <Button type="submit" className="w-full" size="lg">
               Start Game

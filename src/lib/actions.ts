@@ -5,10 +5,11 @@ import { generateQuestion as generateQuestionFlow } from '@/ai/flows/generate-qu
 import type { GameDifficulty, Territory, Question } from './types';
 
 export async function generateFloor(
-  difficulty: GameDifficulty
+  difficulty: GameDifficulty,
+  language: string
 ): Promise<{ territories: Territory[] } | { error: string }> {
   try {
-    const result = await generateThemedFloor({ difficulty });
+    const result = await generateThemedFloor({ difficulty, language });
     if (!result.floorDivision) {
       return { error: 'Failed to generate floor from AI.' };
     }
@@ -24,10 +25,11 @@ export async function generateFloor(
 }
 
 export async function generateQuestion(
-  theme: string
+  theme: string,
+  language: string
 ): Promise<Question | { error: string }> {
   try {
-    const result = await generateQuestionFlow({ theme });
+    const result = await generateQuestionFlow({ theme, language });
     return result;
   } catch (e) {
     console.error(e);

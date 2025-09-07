@@ -17,6 +17,7 @@ const GenerateThemedFloorInputSchema = z.object({
   difficulty: z
     .enum(difficulties)
     .describe('The difficulty level of the floor division.'),
+  language: z.string().describe('The language for the themes.'),
 });
 export type GenerateThemedFloorInput = z.infer<typeof GenerateThemedFloorInputSchema>;
 
@@ -42,25 +43,26 @@ const prompt = ai.definePrompt({
   prompt: `You are a game designer creating themed floors for a trivia game. The floor is divided into territories, each with a theme.
 
 Difficulty: {{{difficulty}}}
+Language: {{{language}}}
 
-Generate a valid, parsable JSON string for the floor division. The JSON must have a "territories" key, which is an array of objects, each with a "theme" string.
+Generate a valid, parsable JSON string for the floor division. The JSON must have a "territories" key, which is an array of objects, each with a "theme" string. The themes should be in the specified language.
 
 Follow these rules based on the difficulty:
 - easy: Use only "animals" and "general trivia" themes. Generate 4 territories.
 - medium: Use only "animals", "general trivia", and "historical landmarks" themes. Generate 9 territories.
 - hard: You can use any theme, including "science", "technology", "movies", etc. Generate 16 territories.
 
-Example for 'easy' difficulty:
+Example for 'easy' difficulty with 'Spanish' language:
 {
   "territories": [
-    { "theme": "animals" },
-    { "theme": "general trivia" },
-    { "theme": "animals" },
-    { "theme": "general trivia" }
+    { "theme": "animales" },
+    { "theme": "cultura general" },
+    { "theme": "animales" },
+    { "theme": "cultura general" }
   ]
 }
 
-Now, generate the floor division for the specified difficulty.
+Now, generate the floor division for the specified difficulty and language.
 `,
 });
 
