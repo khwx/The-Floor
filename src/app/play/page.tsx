@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { generateFloor, generateQuestion } from '@/lib/actions';
-import type { GameDifficulty, TileData, Player, Territory, Question, DuelState } from '@/lib/types';
+import type { GameDifficulty, Player, Territory, Question, DuelState } from '@/lib/types';
 import { GameSetup } from '@/components/game-setup';
 import { GameBoard } from '@/components/game-board';
 import { Scoreboard } from '@/components/scoreboard';
@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
+import { useAudio } from '@/hooks/use-audio';
 
 type GameState = 'setup' | 'loading_board' | 'playing' | 'fetching_question' | 'ai_turn' | 'question' | 'duel' | 'finished';
 
@@ -44,6 +45,7 @@ export default function PlayPage() {
   const [gameState, setGameState] = useState<GameState>('setup');
   const [board, setBoard] = useState<TileData[]>([]);
   const [language, setLanguage] = useState('English');
+  const [difficulty, setDifficulty] = useState<GameDifficulty>('easy');
   const [gridSize, setGridSize] = useState({ rows: 0, cols: 0 });
   const [scores, setScores] = useState({ player: 0, ai: 0 });
   const [turn, setTurn] = useState<Player>('player');
@@ -54,41 +56,7 @@ export default function PlayPage() {
 
   const { toast } = useToast();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const handleGameStart = async (difficulty: GameDifficulty, lang: string, startingPlayer: Player) => {
-    setGameState('loading_board');
-    setLanguage(lang);
-    setTurn(startingPlayer);
-    
-    const result = await generateFloor(difficulty, lang);
-    if ('error' in result) {
-      toast({
-        title: 'Erro a criar o tabuleiro',
-        description: result.error,
-        variant: 'destructive',
-      });
-      setGameState('setup');
-      return;
-    }
-    
-    const { territories } = result;
-    const { rows, cols } = getGridSize(territories.length);
-
-    const initialBoard: TileData[] = territories.map((t: Territory, i: number) => ({
-      id: i,
-      theme: t.theme,
-      owner: 'unowned',
-    }));
-
-    // Assign initial tiles
-    initialBoard[0].owner = 'player';
-    initialBoard[initialBoard.length - 1].owner = 'ai';
-
-    setGridSize({ rows, cols });
-    setBoard(initialBoard);
-    setScores({ player: 1, ai: 1 });
-    setGameState(startingPlayer === 'ai' ? 'ai_turn' : 'playing');
-  };
+  const playAudio = useAudio();
 
   const checkEndGame = useCallback((newBoard: TileData[]) => {
     const playerScore = newBoard.filter(tile => tile.owner === 'player').length;
@@ -103,12 +71,13 @@ export default function PlayPage() {
     }
     return false;
   }, []);
-  
+
   const endTurn = useCallback((wasTurnSuccessful: boolean, currentTurnPlayer: Player, tileConquered: TileData | null) => {
     let newBoard = [...board];
     let tileWasConquered = false;
     
     if (wasTurnSuccessful && tileConquered) {
+      playAudio('/sounds/conquer.mp3');
       const winnerOfTurn = currentTurnPlayer;
       const loserOfTurn = winnerOfTurn === 'player' ? 'ai' : 'player';
 
@@ -149,20 +118,18 @@ export default function PlayPage() {
       return;
     }
     
-    // "Winner Stays On" logic: only if a tile was conquered.
-    if (wasTurnSuccessful && tileWasConquered) {
+    if (tileWasConquered) {
       setGameState(currentTurnPlayer === 'ai' ? 'ai_turn' : 'playing');
     } else {
       const nextTurn = currentTurnPlayer === 'player' ? 'ai' : 'player';
       setTurn(nextTurn);
       setGameState(nextTurn === 'ai' ? 'ai_turn' : 'playing');
     }
-  }, [board, checkEndGame]);
+  }, [board, checkEndGame, playAudio]);
 
   const endDuel = useCallback((finalDuelState: DuelState, duelTile: TileData) => {
     let wasTurnSuccessful: boolean;
     if (finalDuelState.challenger === 'player') {
-      // Challenger must have more correct answers to win
       wasTurnSuccessful = finalDuelState.playerCorrect > finalDuelState.aiCorrect;
     } else { // AI is challenger
       wasTurnSuccessful = finalDuelState.aiCorrect > finalDuelState.playerCorrect;
@@ -181,6 +148,45 @@ export default function PlayPage() {
     }, 1500);
   }, [endTurn, toast]);
 
+  const handleGameStart = useCallback(async (diff: GameDifficulty, lang: string, startPlayer: Player) => {
+    setGameState('loading_board');
+    setLanguage(lang);
+    setDifficulty(diff);
+    setTurn(startPlayer);
+    
+    localStorage.setItem('tile-takeover-difficulty', diff);
+    localStorage.setItem('tile-takeover-language', lang);
+
+    const result = await generateFloor(diff, lang);
+    if ('error' in result) {
+      toast({
+        title: 'Erro a criar o tabuleiro',
+        description: result.error,
+        variant: 'destructive',
+      });
+      setGameState('setup');
+      return;
+    }
+    
+    const { territories } = result;
+    const { rows, cols } = getGridSize(territories.length);
+
+    const initialBoard: TileData[] = territories.map((t: Territory, i: number) => ({
+      id: i,
+      theme: t.theme,
+      owner: 'unowned',
+    }));
+
+    initialBoard[0].owner = 'player';
+    initialBoard[initialBoard.length - 1].owner = 'ai';
+
+    setGridSize({ rows, cols });
+    setBoard(initialBoard);
+    setScores({ player: 1, ai: 1 });
+    setGameState(startPlayer === 'ai' ? 'ai_turn' : 'playing');
+  }, [toast]);
+  
+
   const handleTileClick = async (tile: TileData) => {
     if (gameState !== 'playing' || turn !== 'player') return;
 
@@ -192,6 +198,7 @@ export default function PlayPage() {
 
     let questionCount = 1;
     if (isDuel) {
+      playAudio('/sounds/duel.mp3');
       const territoryCount = board.filter(t => t.owner === 'ai' && t.theme === questionTheme).length;
       questionCount = Math.max(MIN_DUEL_QUESTIONS, territoryCount);
     }
@@ -233,13 +240,19 @@ export default function PlayPage() {
         });
         
         setGameState('duel');
-    } else { // Unowned tile
+    } else { 
         setGameState('question');
     }
   };
   
   const handleAnswer = (correct: boolean) => {
     if (!activeTile) return;
+
+    if (correct) {
+      playAudio('/sounds/correct.mp3');
+    } else {
+      playAudio('/sounds/incorrect.mp3');
+    }
 
     if (gameState === 'question') {
       const tileToConquer = activeTile;
@@ -249,7 +262,6 @@ export default function PlayPage() {
 
     if (gameState === 'duel' && duel) {
       const newPlayerCorrect = duel.playerCorrect + (correct ? 1 : 0);
-      // Simulate AI response for the same question
       const aiResponseCorrect = Math.random() > 0.35; // AI has a 65% chance of being correct
       const newAiCorrect = duel.aiCorrect + (aiResponseCorrect ? 1 : 0);
 
@@ -364,30 +376,44 @@ export default function PlayPage() {
     const aiTurnTimeout = setTimeout(async () => {
         const { rows, cols } = gridSize;
         const aiTiles = board.filter(t => t.owner === 'ai');
-        let possibleTargets: TileData[] = [];
+        
+        let duelTargets: {tile: TileData, territorySize: number}[] = [];
+        let unownedTargets: TileData[] = [];
 
         for (const aiTile of aiTiles) {
             const neighbors = getNeighbors(aiTile.id, cols, rows);
             for (const neighborId of neighbors) {
                 const neighborTile = board[neighborId];
-                if (neighborTile && neighborTile.owner !== 'ai' && !possibleTargets.some(t => t.id === neighborId)) {
-                    possibleTargets.push(neighborTile);
+                if (neighborTile.owner === 'player' && !duelTargets.some(t => t.tile.theme === neighborTile.theme)) {
+                    const territorySize = board.filter(t => t.owner === 'player' && t.theme === neighborTile.theme).length;
+                    duelTargets.push({ tile: neighborTile, territorySize });
+                } else if (neighborTile.owner === 'unowned' && !unownedTargets.some(t => t.id === neighborId)) {
+                    unownedTargets.push(neighborTile);
                 }
             }
         }
         
-        if (possibleTargets.length === 0) {
+        let targetTile: TileData | null = null;
+        // Prioritize duels that give more tiles
+        if (duelTargets.length > 0) {
+            duelTargets.sort((a, b) => b.territorySize - a.territorySize);
+            targetTile = duelTargets[0].tile;
+        } else if (unownedTargets.length > 0) {
+            targetTile = unownedTargets[Math.floor(Math.random() * unownedTargets.length)];
+        }
+        
+        if (!targetTile) {
            toast({ title: 'A IA não tem jogadas!', description: 'É a sua vez.' });
            setTurn('player');
            setGameState('playing');
            return;
         }
 
-        const targetTile = possibleTargets[Math.floor(Math.random() * possibleTargets.length)];
         const isDuel = targetTile.owner === 'player';
         const theme = targetTile.theme;
         
         if (isDuel) {
+            playAudio('/sounds/duel.mp3');
             const territoryCount = board.filter(t => t.owner === 'player' && t.theme === theme).length;
             const numQuestions = Math.max(MIN_DUEL_QUESTIONS, territoryCount);
 
@@ -406,15 +432,18 @@ export default function PlayPage() {
             const aiWon = aiCorrect > playerCorrect;
 
             setTimeout(() => {
+                if (aiWon) {
+                    playAudio('/sounds/lose.mp3');
+                }
                 toast({
                     title: `Duelo com IA terminado!`,
                     description: `A IA acertou ${aiCorrect} e você ${playerCorrect}. A IA ${aiWon ? 'venceu' : 'perdeu'}!`,
                     variant: aiWon ? 'destructive' : 'default'
                 });
-                endTurn(aiWon, 'ai', targetTile);
+                endTurn(aiWon, 'ai', targetTile!);
             }, 2000);
 
-        } else { // AI captures an unowned tile
+        } else {
             toast({
                 title: `Turno da IA`,
                 description: `A IA tenta conquistar o território neutro de "${theme}".`,
@@ -423,21 +452,26 @@ export default function PlayPage() {
             const isCorrect = Math.random() > 0.35; // 65% chance to be correct
 
             setTimeout(() => {
+                if (isCorrect) {
+                  playAudio('/sounds/correct.mp3');
+                } else {
+                  playAudio('/sounds/incorrect.mp3');
+                }
                 toast({
                     title: `A IA respondeu ${isCorrect ? 'corretamente' : 'incorretamente'}!`,
                     variant: isCorrect ? 'default' : 'destructive'
                 });
-                endTurn(isCorrect, 'ai', targetTile);
+                endTurn(isCorrect, 'ai', targetTile!);
             }, 2000);
         }
 
     }, 1500);
 
     return () => clearTimeout(aiTurnTimeout);
-  }, [gameState, turn, board, gridSize, getNeighbors, endTurn, toast]);
+  }, [gameState, turn, board, gridSize, getNeighbors, endTurn, toast, playAudio]);
 
   if (gameState === 'setup') {
-    return <GameSetup onStart={handleGameStart} />;
+    return <GameSetup onStart={handleGameStart} lastDifficulty={difficulty} lastLanguage={language} />;
   }
   
   if (gameState === 'loading_board') {

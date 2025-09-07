@@ -31,20 +31,18 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel 
   const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
-    // Reset state when the question changes, not just when the modal opens/closes
     setSelectedOption(null);
     setIsAnswered(false);
     setImageError(false);
   }, [question]);
 
   useEffect(() => {
-    // Reset state completely when modal closes
     if (!isOpen) {
       setTimeout(() => {
         setSelectedOption(null);
         setIsAnswered(false);
         setImageError(false);
-      }, 300); // Delay to allow for closing animation
+      }, 300);
     }
   }, [isOpen]);
 
@@ -67,8 +65,8 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel 
 
   const getOptionClass = (option: string) => {
     if (!isAnswered) return '';
-    if (option === question?.answer) return 'bg-green-500/80 hover:bg-green-500 text-white';
-    if (option === selectedOption && option !== question?.answer) return 'bg-red-500/80 hover:bg-red-500 text-white';
+    if (option === question?.answer) return 'animate-flash-green';
+    if (option === selectedOption && option !== question?.answer) return 'animate-flash-red';
     return 'opacity-50';
   }
 

@@ -1,22 +1,41 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import type { GameDifficulty, Player } from '@/lib/types';
-import { Languages, SlidersHorizontal, UserSquare } from 'lucide-react';
+import { Languages, SlidersHorizontal, UserSquare, Bot, User } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 
 type GameSetupProps = {
   onStart: (difficulty: GameDifficulty, language: string, startingPlayer: Player) => void;
+  lastDifficulty?: GameDifficulty;
+  lastLanguage?: string;
 };
 
-export function GameSetup({ onStart }: GameSetupProps) {
+export function GameSetup({ onStart, lastDifficulty, lastLanguage }: GameSetupProps) {
   const [difficulty, setDifficulty] = useState<GameDifficulty>('easy');
   const [language, setLanguage] = useState<string>('Portuguese');
   const [startingPlayer, setStartingPlayer] = useState<Player>('player');
+
+  useEffect(() => {
+    const savedDifficulty = localStorage.getItem('tile-takeover-difficulty') as GameDifficulty;
+    const savedLanguage = localStorage.getItem('tile-takeover-language');
+
+    if (savedDifficulty) {
+      setDifficulty(savedDifficulty);
+    } else if (lastDifficulty) {
+      setDifficulty(lastDifficulty);
+    }
+
+    if (savedLanguage) {
+      setLanguage(savedLanguage);
+    } else if (lastLanguage) {
+      setLanguage(lastLanguage);
+    }
+  }, [lastDifficulty, lastLanguage]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +58,7 @@ export function GameSetup({ onStart }: GameSetupProps) {
           <CardContent className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="difficulty" className="text-lg">Dificuldade</Label>
-              <Select onValueChange={(value: GameDifficulty) => setDifficulty(value)} defaultValue={difficulty}>
+              <Select onValueChange={(value: GameDifficulty) => setDifficulty(value)} value={difficulty}>
                 <SelectTrigger id="difficulty" className="w-full text-lg h-12">
                   <SelectValue placeholder="Selecione a dificuldade" />
                 </SelectTrigger>
@@ -64,6 +83,7 @@ export function GameSetup({ onStart }: GameSetupProps) {
                     htmlFor="player"
                     className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
                   >
+                    <User className="mb-2 h-6 w-6"/>
                     Jogador
                   </Label>
                 </div>
@@ -73,6 +93,7 @@ export function GameSetup({ onStart }: GameSetupProps) {
                     htmlFor="ai"
                     className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
                   >
+                    <Bot className="mb-2 h-6 w-6"/>
                     IA
                   </Label>
                 </div>
@@ -80,7 +101,7 @@ export function GameSetup({ onStart }: GameSetupProps) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="language" className="text-lg flex items-center gap-2"><Languages size={20} /> Idioma</Label>
-              <Select onValueChange={(value: string) => setLanguage(value)} defaultValue={language}>
+              <Select onValueChange={(value: string) => setLanguage(value)} value={language}>
                 <SelectTrigger id="language" className="w-full text-lg h-12">
                   <SelectValue placeholder="Selecione o idioma" />
                 </SelectTrigger>

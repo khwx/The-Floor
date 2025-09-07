@@ -96,13 +96,23 @@ export default {
         'tile-spawn': {
           'from': { opacity: '0', transform: 'scale(0.5)' },
           'to': { opacity: '1', transform: 'scale(1)' },
-        }
+        },
+        'flash-green': {
+          '0%, 100%': { backgroundColor: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' },
+          '50%': { backgroundColor: 'hsl(140, 80%, 60%)', color: 'hsl(var(--primary-foreground))' },
+        },
+        'flash-red': {
+          '0%, 100%': { backgroundColor: 'hsl(var(--destructive))', color: 'hsl(var(--destructive-foreground))' },
+          '50%': { backgroundColor: 'hsl(0, 90%, 70%)', color: 'hsl(var(--destructive-foreground))' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'tile-conquer': 'tile-conquer 0.4s ease-in-out',
         'tile-spawn': 'tile-spawn 0.4s ease-out',
+        'flash-green': 'flash-green 1s ease-in-out',
+        'flash-red': 'flash-red 1s ease-in-out',
       },
     },
   },
