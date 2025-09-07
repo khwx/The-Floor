@@ -359,7 +359,6 @@ export default function PlayPage() {
 
   // AI Turn Logic
   useEffect(() => {
-    // This effect should ONLY run when it's the AI's turn to make a move.
     if (gameState !== 'ai_turn' || turn !== 'ai' || board.length === 0) {
       return;
     }
@@ -388,10 +387,13 @@ export default function PlayPage() {
         }
 
         const targetTile = possibleTargets[Math.floor(Math.random() * possibleTargets.length)];
-        setActiveTile(targetTile); // Set active tile for endTurn logic
-
+        
         const isDuel = targetTile.owner === 'player';
         const theme = targetTile.theme;
+        
+        // This is a critical update: We must set the active tile *before* calling endTurn later.
+        // But we should not set it in the component state until we are sure about the action.
+        // So we will pass it directly to the endTurn function after the simulation.
         
         if (isDuel) {
             const territoryCount = board.filter(t => t.owner === 'player' && t.theme === theme).length;
@@ -418,7 +420,8 @@ export default function PlayPage() {
                     description: `A IA acertou ${aiCorrect} e você ${playerCorrect}. A IA ${aiWon ? 'venceu' : 'perdeu'}!`,
                     variant: aiWon ? 'destructive' : 'default'
                 });
-                // Pass the correct activeTile to endTurn
+                // Temporarily set active tile for endTurn logic
+                setActiveTile(targetTile);
                 endTurn(aiWon, 'ai');
             }, 2000);
 
@@ -435,6 +438,8 @@ export default function PlayPage() {
                     title: `A IA respondeu ${isCorrect ? 'corretamente' : 'incorretamente'}!`,
                     variant: isCorrect ? 'default' : 'destructive'
                 });
+                 // Temporarily set active tile for endTurn logic
+                setActiveTile(targetTile);
                 endTurn(isCorrect, 'ai');
             }, 2000);
         }
