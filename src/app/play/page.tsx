@@ -102,129 +102,6 @@ export default function PlayPage() {
     }
     return false;
   }, []);
-
-  const handleTileClick = async (tile: TileData) => {
-    if (gameState !== 'playing' || turn !== 'player') return;
-
-    const isDuel = tile.owner === 'ai';
-    const questionTheme = tile.theme;
-
-    setActiveTile(tile);
-    setGameState('fetching_question');
-    
-    let questionCount = 1;
-    if (isDuel) {
-      const territoryCount = board.filter(t => t.owner === 'ai' && t.theme === questionTheme).length;
-      questionCount = Math.max(MIN_DUEL_QUESTIONS, territoryCount);
-    }
-    
-    toast({
-        title: 'A preparar o seu desafio...',
-        description: `A gerar ${questionCount} pergunta(s) sobre "${questionTheme}".`,
-    });
-
-    const questionResult = await generateQuestion(questionTheme, language, questionCount);
-
-    if ('error' in questionResult) {
-        toast({
-            title: 'Falha ao obter pergunta(s)',
-            description: questionResult.error,
-            variant: 'destructive',
-        });
-        setGameState('playing');
-        setActiveTile(null);
-        return;
-    }
-    
-    setActiveQuestion(questionResult[0]);
-
-    if (isDuel) {
-        const totalDuelTime = DUEL_TIME_PER_QUESTION * questionResult.length;
-        toast({
-            title: `Duelo Iniciado!`,
-            description: `Tema: "${questionTheme}". Você tem ${totalDuelTime} segundos para responder a ${questionCount} pergunta(s).`,
-        });
-        
-        setDuel({
-            challenger: 'player',
-            questions: questionResult,
-            activeQuestionIndex: 0,
-            playerCorrect: 0,
-            aiCorrect: 0,
-            timeRemaining: totalDuelTime,
-        });
-        
-        setGameState('duel');
-    } else { // Unowned tile
-        setGameState('question');
-    }
-  };
-  
-  const endDuel = useCallback((finalDuelState: DuelState) => {
-    let wasTurnSuccessful: boolean;
-    if (finalDuelState.challenger === 'player') {
-      wasTurnSuccessful = finalDuelState.playerCorrect > finalDuelState.aiCorrect;
-    } else { // AI is challenger
-      wasTurnSuccessful = finalDuelState.aiCorrect > finalDuelState.playerCorrect;
-    }
-    
-    toast({
-      title: 'Duelo Terminado!',
-      description: wasTurnSuccessful
-        ? `O desafiante (${finalDuelState.challenger}) venceu o duelo!`
-        : `O defensor (${finalDuelState.challenger === 'player' ? 'ai' : 'player'}) venceu o duelo!`,
-      variant: wasTurnSuccessful ? 'default' : 'destructive',
-    });
-
-    // Use a timeout to let the user see the result of the last question
-    setTimeout(() => {
-      endTurn(wasTurnSuccessful, finalDuelState.challenger);
-    }, 1500);
-  }, [endTurn]);
-  
-  const handleAnswer = (correct: boolean) => {
-    if (!activeTile) return;
-
-    // Logic for standard question (unowned tile)
-    if (gameState === 'question') {
-      // Delay to allow user to see feedback in modal
-      setTimeout(() => endTurn(correct, 'player'), 1500);
-      return;
-    }
-
-    // Logic for Dueling
-    if (gameState === 'duel' && duel) {
-      const newPlayerCorrect = duel.playerCorrect + (correct ? 1 : 0);
-      // Simulate AI response for the same question
-      const aiResponseCorrect = Math.random() > 0.35; // AI has a 65% chance of being correct
-      const newAiCorrect = duel.aiCorrect + (aiResponseCorrect ? 1 : 0);
-
-      const nextQuestionIndex = duel.activeQuestionIndex + 1;
-      
-      const updatedDuelState: DuelState = {
-          ...duel,
-          playerCorrect: newPlayerCorrect,
-          aiCorrect: newAiCorrect,
-      };
-
-      setDuel(updatedDuelState);
-
-      // If there are more questions, show the next one after a delay
-      if (nextQuestionIndex < duel.questions.length) {
-        setTimeout(() => {
-            setDuel({
-              ...updatedDuelState,
-              activeQuestionIndex: nextQuestionIndex,
-            });
-            setActiveQuestion(duel.questions[nextQuestionIndex]);
-        }, 1500); // 1.5 second delay to show result and move to next question
-      } else {
-        // This was the last question. End the duel.
-        if (timerRef.current) clearInterval(timerRef.current);
-        endDuel(updatedDuelState);
-      }
-    }
-  };
   
   const endTurn = useCallback((wasTurnSuccessful: boolean, currentTurnPlayer: Player) => {
     let newBoard = [...board];
@@ -275,7 +152,130 @@ export default function PlayPage() {
     setGameState(nextTurn === 'ai' ? 'ai_turn' : 'playing');
   }, [board, activeTile, checkEndGame]);
 
+  const endDuel = useCallback((finalDuelState: DuelState) => {
+    let wasTurnSuccessful: boolean;
+    if (finalDuelState.challenger === 'player') {
+      // Challenger must have more correct answers to win
+      wasTurnSuccessful = finalDuelState.playerCorrect > finalDuelState.aiCorrect;
+    } else { // AI is challenger
+      wasTurnSuccessful = finalDuelState.aiCorrect > finalDuelState.playerCorrect;
+    }
+    
+    toast({
+      title: 'Duelo Terminado!',
+      description: wasTurnSuccessful
+        ? `O desafiante (${finalDuelState.challenger}) venceu o duelo!`
+        : `O defensor (${finalDuelState.challenger === 'player' ? 'ai' : 'player'}) venceu o duelo!`,
+      variant: wasTurnSuccessful ? 'default' : 'destructive',
+    });
 
+    // Use a timeout to let the user see the result of the last question
+    setTimeout(() => {
+      endTurn(wasTurnSuccessful, finalDuelState.challenger);
+    }, 1500);
+  }, [endTurn, toast]);
+
+  const handleTileClick = async (tile: TileData) => {
+    if (gameState !== 'playing' || turn !== 'player') return;
+
+    const isDuel = tile.owner === 'ai';
+    const questionTheme = tile.theme;
+
+    setActiveTile(tile);
+    setGameState('fetching_question');
+    
+    let questionCount = 1;
+    if (isDuel) {
+      const territoryCount = board.filter(t => t.owner === 'ai' && t.theme === questionTheme).length;
+      questionCount = Math.max(MIN_DUEL_QUESTIONS, territoryCount);
+    }
+    
+    toast({
+        title: 'A preparar o seu desafio...',
+        description: `A gerar ${questionCount} pergunta(s) sobre "${questionTheme}".`,
+    });
+
+    const questionResult = await generateQuestion(questionTheme, language, questionCount);
+
+    if ('error' in questionResult) {
+        toast({
+            title: 'Falha ao obter pergunta(s)',
+            description: questionResult.error,
+            variant: 'destructive',
+        });
+        setGameState('playing');
+        setActiveTile(null);
+        return;
+    }
+    
+    setActiveQuestion(questionResult[0]);
+
+    if (isDuel) {
+        const totalDuelTime = DUEL_TIME_PER_QUESTION * questionResult.length;
+        toast({
+            title: `Duelo Iniciado!`,
+            description: `Tema: "${questionTheme}". Você tem ${totalDuelTime} segundos para responder a ${questionResult.length} pergunta(s).`,
+        });
+        
+        setDuel({
+            challenger: 'player',
+            questions: questionResult,
+            activeQuestionIndex: 0,
+            playerCorrect: 0,
+            aiCorrect: 0,
+            timeRemaining: totalDuelTime,
+        });
+        
+        setGameState('duel');
+    } else { // Unowned tile
+        setGameState('question');
+    }
+  };
+  
+  const handleAnswer = (correct: boolean) => {
+    if (!activeTile) return;
+
+    // Logic for standard question (unowned tile)
+    if (gameState === 'question') {
+      // Delay to allow user to see feedback in modal
+      setTimeout(() => endTurn(correct, 'player'), 1500);
+      return;
+    }
+
+    // Logic for Dueling
+    if (gameState === 'duel' && duel) {
+      const newPlayerCorrect = duel.playerCorrect + (correct ? 1 : 0);
+      // Simulate AI response for the same question
+      const aiResponseCorrect = Math.random() > 0.35; // AI has a 65% chance of being correct
+      const newAiCorrect = duel.aiCorrect + (aiResponseCorrect ? 1 : 0);
+
+      const nextQuestionIndex = duel.activeQuestionIndex + 1;
+      
+      const updatedDuelState: DuelState = {
+          ...duel,
+          playerCorrect: newPlayerCorrect,
+          aiCorrect: newAiCorrect,
+      };
+
+      setDuel(updatedDuelState);
+
+      // If there are more questions, show the next one after a delay
+      if (nextQuestionIndex < duel.questions.length) {
+        setTimeout(() => {
+            setDuel({
+              ...updatedDuelState,
+              activeQuestionIndex: nextQuestionIndex,
+            });
+            setActiveQuestion(duel.questions[nextQuestionIndex]);
+        }, 1500); // 1.5 second delay to show result and move to next question
+      } else {
+        // This was the last question. End the duel.
+        if (timerRef.current) clearInterval(timerRef.current);
+        endDuel(updatedDuelState);
+      }
+    }
+  };
+  
   const handleModalClose = () => {
     // Closing the modal during a question is a loss for that turn.
     if (gameState === 'question') {
@@ -334,16 +334,12 @@ export default function PlayPage() {
             variant: "destructive",
           });
           
-          const challenger = prevDuel.challenger;
-          
-          setTimeout(() => {
-            endTurn(challenger !== 'player', challenger);
-          }, 1500);
+          endDuel(prevDuel);
 
           return { ...prevDuel, timeRemaining: 0 };
         });
       }, 1000);
-  }, [toast, endTurn]);
+  }, [toast, endDuel]);
 
 
   // Effect to start duel timer
@@ -446,7 +442,7 @@ export default function PlayPage() {
     }, 1500);
 
     return () => clearTimeout(aiTurnTimeout);
-  }, [gameState, turn, board, gridSize, language, getNeighbors, endTurn, toast]);
+  }, [gameState, turn, board, gridSize, getNeighbors, endTurn, toast]);
 
   if (gameState === 'setup') {
     return <GameSetup onStart={handleGameStart} />;
@@ -481,7 +477,7 @@ export default function PlayPage() {
           />
           {(gameState === 'ai_turn' || gameState === 'fetching_question') && (
             <div className="absolute inset-0 bg-black/10 flex flex-col items-center justify-center z-10 rounded-lg pointer-events-none">
-                {/* Visual feedback can be added here if desired, but toasts are primary */}
+                {/* Visual feedback is now handled by toasts */}
             </div>
           )}
         </main>
@@ -504,5 +500,3 @@ export default function PlayPage() {
     </div>
   );
 }
-
-    
