@@ -34,6 +34,8 @@ function SubmitButton({ text, loadingText, icon }: { text: string; loadingText: 
 function CreateGameForm() {
     const [difficulty, setDifficulty] = useState<GameDifficulty>('easy');
     const [language, setLanguage] = useState('Portuguese');
+    // useActionState is useful for displaying errors, but since our action redirects on success or error, 
+    // we might not see the error message. For now, we'll keep it to see if we can catch any pre-redirect errors.
     const [createGameState, createGameAction] = useActionState(createGameSession, undefined);
 
     return (
@@ -51,10 +53,10 @@ function CreateGameForm() {
                                 <SelectValue placeholder="Selecione a dificuldade" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="easy">Fácil (4x4)</SelectItem>
-                                <SelectItem value="medium">Médio (5x5)</SelectItem>
-                                <SelectItem value="hard">Difícil (6x6)</SelectItem>
-                                <SelectItem value="epic">Épico (7x7)</SelectItem>
+                                <SelectItem value="easy">Fácil (2x2)</SelectItem>
+                                <SelectItem value="medium">Médio (3x3)</SelectItem>
+                                <SelectItem value="hard">Difícil (4x4)</SelectItem>
+                                <SelectItem value="epic">Épico (5x5)</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
