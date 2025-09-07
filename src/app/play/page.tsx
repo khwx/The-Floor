@@ -159,6 +159,29 @@ export default function PlayPage() {
     }
   };
   
+  const endDuel = (finalDuelState: DuelState) => {
+    let wasTurnSuccessful: boolean;
+    if (finalDuelState.challenger === 'player') {
+      // Challenger must have MORE correct answers to win. Tie goes to the defender.
+      wasTurnSuccessful = finalDuelState.playerCorrect > finalDuelState.aiCorrect;
+    } else { // AI is challenger
+      wasTurnSuccessful = finalDuelState.aiCorrect > finalDuelState.playerCorrect;
+    }
+    
+    toast({
+      title: 'Duelo Terminado!',
+      description: wasTurnSuccessful
+        ? `O desafiante (${finalDuelState.challenger}) venceu!`
+        : `O defensor (${finalDuelState.challenger === 'player' ? 'ai' : 'player'}) venceu!`,
+      variant: wasTurnSuccessful ? 'default' : 'destructive',
+    });
+
+    // Use a timeout to let the user see the result of the last question
+    setTimeout(() => {
+      endTurn(wasTurnSuccessful);
+    }, 1500);
+  };
+  
   const handleAnswer = (correct: boolean) => {
     if (!activeTile) return;
 
@@ -178,11 +201,13 @@ export default function PlayPage() {
 
       const nextQuestionIndex = duel.activeQuestionIndex + 1;
       
-      const updatedDuelState = {
+      const updatedDuelState: DuelState = {
           ...duel,
           playerCorrect: newPlayerCorrect,
           aiCorrect: newAiCorrect,
       };
+
+      setDuel(updatedDuelState);
 
       // If there are more questions, show the next one after a delay
       if (nextQuestionIndex < duel.questions.length) {
@@ -192,25 +217,12 @@ export default function PlayPage() {
               activeQuestionIndex: nextQuestionIndex,
             });
             setActiveQuestion(duel.questions[nextQuestionIndex]);
-        }, 1500); // 1.5 second delay to show result
+        }, 1500); // 1.5 second delay to show result and move to next question
       } else {
-        // This was the last question. End the duel and determine the winner.
+        // This was the last question. End the duel.
         if (timerRef.current) clearInterval(timerRef.current);
-        
-        let wasTurnSuccessful: boolean;
-        if (duel.challenger === 'player') {
-          // Challenger must have MORE correct answers to win. Tie goes to the defender.
-          wasTurnSuccessful = newPlayerCorrect > newAiCorrect;
-        } else { // AI is challenger
-          wasTurnSuccessful = newAiCorrect > newPlayerCorrect;
-        }
-        
-        // Use a timeout to let the user see the result of the last question
-        setTimeout(() => {
-          endTurn(wasTurnSuccessful);
-        }, 1500); 
+        endDuel(updatedDuelState);
       }
-      setDuel(updatedDuelState);
     }
   };
   
@@ -262,7 +274,12 @@ export default function PlayPage() {
     }
     
     setTurn(turn === 'player' ? 'ai' : 'player');
-    setGameState('ai_thinking');
+    setGameState('playing'); // <- Change to playing first
+    if(winnerOfTurn !== turn) { // If turn didn't succeed, next turn starts after AI thinking
+       setTimeout(() => setGameState('ai_thinking'), 50);
+    } else { // if turn suceeded, AI thinking starts immediately
+        setGameState('ai_thinking');
+    }
   };
 
 
@@ -322,9 +339,8 @@ export default function PlayPage() {
             description: "O desafiante perdeu o duelo.",
             variant: "destructive",
           });
-
-          const challengerWon = false;
-          setTimeout(() => endTurn(challengerWon), 1500);
+          
+          setTimeout(() => endDuel({...prevDuel, timeRemaining: 0}), 1500);
           
           return { ...prevDuel, timeRemaining: 0 };
         });
@@ -334,7 +350,7 @@ export default function PlayPage() {
 
   // Effect to start duel timer
   useEffect(() => {
-    if (gameState === 'duel' && duel && duel.activeQuestionIndex === 0 && duel.timeRemaining > 0) {
+    if (gameState === 'duel' && duel && duel.timeRemaining > 0 && timerRef.current === null) {
       startDuelTimer();
     }
     
@@ -342,6 +358,7 @@ export default function PlayPage() {
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
+        timerRef.current = null;
       }
     };
   }, [gameState, duel, startDuelTimer]);
@@ -377,6 +394,8 @@ export default function PlayPage() {
         const isDuel = targetTile.owner === 'player';
         const theme = targetTile.theme;
         
+        setActiveTile(targetTile); // Set active tile for AI turn
+
         if (isDuel) {
           // AI challenges player to a duel
           const territoryCount = board.filter(t => t.owner === 'player' && t.theme === theme).length;
@@ -393,21 +412,45 @@ export default function PlayPage() {
               toast({ title: 'Falha ao obter perguntas para o duelo.', variant: 'destructive' });
               setTurn('player');
               setGameState('playing');
+              setActiveTile(null);
               return;
           }
           
-          setActiveTile(targetTile);
           setActiveQuestion(questionResult[0]);
           const totalDuelTime = DUEL_TIME_PER_QUESTION * questionResult.length;
-          setDuel({
+          
+          const aiDuelState: DuelState = {
               challenger: 'ai',
               questions: questionResult,
               activeQuestionIndex: 0,
               playerCorrect: 0,
               aiCorrect: 0,
               timeRemaining: totalDuelTime,
-          });
-          setGameState('duel');
+          };
+          
+          // Simulate the entire duel for the AI vs Player
+          let simulatedDuel = aiDuelState;
+          for(let i = 0; i < numQuestions; i++){
+            const aiIsCorrect = Math.random() > 0.35; // 65%
+            const playerIsCorrect = Math.random() > 0.5; // 50%
+            simulatedDuel = {
+              ...simulatedDuel,
+              aiCorrect: simulatedDuel.aiCorrect + (aiIsCorrect ? 1 : 0),
+              playerCorrect: simulatedDuel.playerCorrect + (playerIsCorrect ? 1 : 0),
+            }
+          }
+          
+          const aiWon = simulatedDuel.aiCorrect > simulatedDuel.playerCorrect;
+
+          setTimeout(() => {
+              toast({
+                  title: `Duelo com IA terminado!`,
+                  description: `A IA acertou ${simulatedDuel.aiCorrect} e você ${simulatedDuel.playerCorrect}. A IA ${aiWon ? 'venceu' : 'perdeu'}!`,
+                  variant: aiWon ? 'destructive' : 'default'
+              });
+              endTurn(aiWon);
+          }, 2000);
+
 
         } else {
           // AI captures an unowned tile
@@ -423,21 +466,7 @@ export default function PlayPage() {
                 title: `A IA respondeu ${isCorrect ? 'corretamente' : 'incorretamente'}!`,
                 variant: isCorrect ? 'default' : 'destructive'
             });
-            let newBoard = [...board];
-            if (isCorrect) {
-                 newBoard = board.map(t =>
-                    t.id === targetTile.id ? { ...t, owner: 'ai' } : t
-                );
-            }
-            setBoard(newBoard);
-            const newScores = {
-              player: newBoard.filter(t => t.owner === 'player').length,
-              ai: newBoard.filter(t => t.owner === 'ai').length,
-            };
-            setScores(newScores);
-            if (checkEndGame(newBoard)) return;
-            setTurn('player');
-            setGameState('playing');
+            endTurn(isCorrect);
           }, 2000);
         }
 
@@ -504,3 +533,5 @@ export default function PlayPage() {
     </div>
   );
 }
+
+    
