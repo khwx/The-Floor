@@ -378,7 +378,7 @@ export default function PlayPage() {
             const neighbors = getNeighbors(aiTile.id, cols, rows);
             for (const neighborId of neighbors) {
                 const neighborTile = board[neighborId];
-                if (neighborTile.owner !== 'ai' && !possibleTargets.some(t => t.id === neighborId)) {
+                if (neighborTile && neighborTile.owner !== 'ai' && !possibleTargets.some(t => t.id === neighborId)) {
                     possibleTargets.push(neighborTile);
                 }
             }
@@ -509,7 +509,7 @@ export default function PlayPage() {
             playerTurn={turn === 'player' && gameState === 'playing'}
           />
           {(gameState === 'ai_thinking' && turn === 'ai') && (
-            <div className="absolute inset-0 bg-transparent flex flex-col items-center justify-center z-10 rounded-lg">
+            <div className="absolute inset-0 bg-black/10 flex flex-col items-center justify-center z-10 rounded-lg pointer-events-none">
                 {/* A animação de loading foi removida para dar lugar a toasts informativos */}
             </div>
           )}
@@ -533,3 +533,5 @@ export default function PlayPage() {
     </div>
   );
 }
+
+    
