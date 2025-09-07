@@ -11,9 +11,11 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
+const difficulties = ['easy', 'medium', 'hard'] as const;
+
 const GenerateThemedFloorInputSchema = z.object({
   difficulty: z
-    .enum(['easy', 'medium', 'hard'])
+    .enum(difficulties)
     .describe('The difficulty level of the floor division.'),
 });
 export type GenerateThemedFloorInput = z.infer<typeof GenerateThemedFloorInputSchema>;
