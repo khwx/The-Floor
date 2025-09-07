@@ -10,6 +10,7 @@
 
 import {ai, model} from '@/ai/genkit';
 import {z} from 'genkit';
+import { allCategories } from '@/lib/categories';
 
 const difficulties = ['easy', 'medium', 'hard'] as const;
 
@@ -18,6 +19,7 @@ const GenerateThemedFloorInputSchema = z.object({
     .enum(difficulties)
     .describe('The difficulty level of the floor division.'),
   language: z.string().describe('The language for the themes.'),
+  categories: z.array(z.string()).describe('The list of available categories for themes.')
 });
 export type GenerateThemedFloorInput = z.infer<typeof GenerateThemedFloorInputSchema>;
 
@@ -31,9 +33,9 @@ const GenerateThemedFloorOutputSchema = z.object({
 export type GenerateThemedFloorOutput = z.infer<typeof GenerateThemedFloorOutputSchema>;
 
 export async function generateThemedFloor(
-  input: GenerateThemedFloorInput
+  input: Omit<GenerateThemedFloorInput, 'categories'>
 ): Promise<GenerateThemedFloorOutput> {
-  return generateThemedFloorFlow(input);
+  return generateThemedFloorFlow({...input, categories: allCategories});
 }
 
 const prompt = ai.definePrompt({
@@ -45,20 +47,27 @@ const prompt = ai.definePrompt({
 Difficulty: {{{difficulty}}}
 Language: {{{language}}}
 
-Generate a valid, parsable JSON string for the floor division. The JSON must have a "territories" key, which is an array of objects, each with a "theme" string. The themes should be in the specified language.
+Generate a valid, parsable JSON string for the floor division. The JSON must have a "territories" key, which is an array of objects, each with a "theme" string.
 
-Follow these rules based on the difficulty:
-- easy: Use only "animals" and "general trivia" themes. Generate 4 territories.
-- medium: Use only "animals", "general trivia", and "historical landmarks" themes. Generate 9 territories.
-- hard: You can use any theme, including "science", "technology", "movies", etc. Generate 16 territories.
+The themes MUST be selected from the following list of available categories:
+{{#each categories}}
+- {{{this}}}
+{{/each}}
 
-Example for 'easy' difficulty with 'Spanish' language:
+The number of territories depends on the difficulty:
+- easy: Generate 4 territories.
+- medium: Generate 9 territories.
+- hard: Generate 16 territories.
+
+The themes you select should be thematically diverse and appropriate for a trivia game. Ensure the generated themes are in the specified language ({{{language}}}).
+
+Example for 'easy' difficulty with 'Portuguese' language, assuming 'Animais' and 'Cultura Geral' are in the categories list:
 {
   "territories": [
-    { "theme": "animales" },
-    { "theme": "cultura general" },
-    { "theme": "animales" },
-    { "theme": "cultura general" }
+    { "theme": "Animais" },
+    { "theme": "Cultura Geral" },
+    { "theme": "Animais" },
+    { "theme": "Cultura Geral" }
   ]
 }
 
