@@ -342,47 +342,44 @@ export default function PlayPage() {
       return neighbors;
   }, []);
   
-  const startDuelTimer = useCallback(() => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    
-    timerRef.current = setInterval(() => {
-        setDuel(prevDuel => {
-          if (!prevDuel || !activeTile) {
-             if (timerRef.current) clearInterval(timerRef.current);
-             return null;
-          }
-
-          if (prevDuel.timeRemaining > 1) {
-            return { ...prevDuel, timeRemaining: prevDuel.timeRemaining - 1 };
-          }
-          
-          if (timerRef.current) clearInterval(timerRef.current);
-          toast({
-            title: "O tempo acabou!",
-            description: "O desafiante perdeu o duelo.",
-            variant: "destructive",
-          });
-          
-          endDuel(prevDuel, activeTile);
-
-          return { ...prevDuel, timeRemaining: 0 };
-        });
-      }, 1000);
-  }, [toast, endDuel, activeTile]);
-
-
+  // Effect for duel timer countdown
   useEffect(() => {
     if (gameState === 'duel' && duel && duel.timeRemaining > 0) {
-      startDuelTimer();
+      timerRef.current = setInterval(() => {
+        setDuel(prevDuel => {
+          if (prevDuel && prevDuel.timeRemaining > 0) {
+            return { ...prevDuel, timeRemaining: prevDuel.timeRemaining - 1 };
+          }
+          return prevDuel;
+        });
+      }, 1000);
+    } else {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
     }
-    
+
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
-        timerRef.current = null;
       }
     };
-  }, [gameState, duel, startDuelTimer]);
+  }, [gameState, duel]);
+
+  // Effect to end duel when time runs out
+  useEffect(() => {
+    if (gameState === 'duel' && duel && duel.timeRemaining === 0) {
+      if (timerRef.current) clearInterval(timerRef.current);
+      toast({
+        title: "O tempo acabou!",
+        description: "O desafiante perdeu o duelo.",
+        variant: "destructive",
+      });
+      if(activeTile){
+        endDuel(duel, activeTile);
+      }
+    }
+  }, [gameState, duel, activeTile, endDuel, toast]);
 
 
   useEffect(() => {
