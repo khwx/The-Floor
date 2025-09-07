@@ -41,9 +41,6 @@ Generate a challenging but fair multiple-choice question about the given theme.
 Provide 4 distinct options, with one of them being the correct answer.
 Ensure the question, options, and answer are all populated in the output.
 `,
-  config: {
-    model,
-  }
 });
 
 const generateQuestionFlow = ai.defineFlow(
@@ -53,7 +50,7 @@ const generateQuestionFlow = ai.defineFlow(
     outputSchema: GenerateQuestionOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+    const {output} = await prompt(input, {model});
     return output!;
   }
 );

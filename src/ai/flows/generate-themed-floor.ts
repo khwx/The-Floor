@@ -62,9 +62,6 @@ Example for 'easy' difficulty:
 
 Now, generate the floor division for the specified difficulty.
 `,
-  config: {
-    model,
-  }
 });
 
 const generateThemedFloorFlow = ai.defineFlow(
@@ -74,7 +71,7 @@ const generateThemedFloorFlow = ai.defineFlow(
     outputSchema: GenerateThemedFloorOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+    const {output} = await prompt(input, {model});
     return output!;
   }
 );
