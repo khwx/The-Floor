@@ -11,3 +11,9 @@ export type TileData = {
 };
 
 export type GameDifficulty = 'easy' | 'medium' | 'hard';
+
+export type Question = {
+  question: string;
+  options: string[];
+  answer: string;
+};

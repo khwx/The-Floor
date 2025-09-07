@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { generateFloor } from '@/lib/actions';
-import type { GameDifficulty, TileData, Player, Territory } from '@/lib/types';
+import { generateFloor, generateQuestion } from '@/lib/actions';
+import type { GameDifficulty, TileData, Player, Territory, Question } from '@/lib/types';
 import { GameSetup } from '@/components/game-setup';
 import { GameBoard } from '@/components/game-board';
 import { Scoreboard } from '@/components/scoreboard';
@@ -43,6 +43,7 @@ export default function PlayPage() {
   const [scores, setScores] = useState({ player: 0, ai: 0 });
   const [turn, setTurn] = useState<Player>('player');
   const [activeTile, setActiveTile] = useState<TileData | null>(null);
+  const [activeQuestion, setActiveQuestion] = useState<Question | null>(null);
   const [winner, setWinner] = useState<Player | 'draw' | null>(null);
 
   const { toast } = useToast();
@@ -94,9 +95,22 @@ export default function PlayPage() {
     return false;
   }, []);
 
-  const handleTileClick = (tile: TileData) => {
+  const handleTileClick = async (tile: TileData) => {
     if (gameState !== 'playing' || turn !== 'player') return;
     setActiveTile(tile);
+    setGameState('ai_thinking'); // Use ai_thinking as a loading state
+    const questionResult = await generateQuestion(tile.theme);
+    if ('error' in questionResult) {
+      toast({
+        title: 'Failed to get question',
+        description: questionResult.error,
+        variant: 'destructive',
+      });
+      setGameState('playing');
+      setActiveTile(null);
+      return;
+    }
+    setActiveQuestion(questionResult);
     setGameState('question');
   };
 
@@ -115,13 +129,22 @@ export default function PlayPage() {
       setScores(newScores);
       if (checkEndGame(newBoard)) {
         setActiveTile(null);
+        setActiveQuestion(null);
         return;
       }
     }
 
     setActiveTile(null);
+    setActiveQuestion(null);
     setTurn(turn === 'player' ? 'ai' : 'player');
     setGameState('ai_thinking');
+  };
+
+  const handleModalClose = () => {
+    // Player closes modal without answering, counts as wrong answer
+    if (gameState === 'question') {
+      handleAnswer(false);
+    }
   };
 
   const resetGame = () => {
@@ -131,10 +154,11 @@ export default function PlayPage() {
     setTurn('player');
     setWinner(null);
     setActiveTile(null);
+    setActiveQuestion(null);
   };
   
   useEffect(() => {
-    if (gameState === 'ai_thinking' && turn === 'ai') {
+    if (gameState === 'ai_thinking' && turn === 'ai' && board.length > 0) {
       const aiTurn = setTimeout(() => {
         const aiTiles = board.filter(t => t.owner === 'ai');
         const validMoves: TileData[] = [];
@@ -233,9 +257,11 @@ export default function PlayPage() {
       </div>
 
       <QuestionModal
-        isOpen={gameState === 'question'}
+        isOpen={gameState === 'question' || (gameState === 'ai_thinking' && activeTile !== null)}
         tile={activeTile}
+        question={activeQuestion}
         onAnswer={handleAnswer}
+        onClose={handleModalClose}
       />
       <GameOverDialog
         isOpen={gameState === 'finished'}

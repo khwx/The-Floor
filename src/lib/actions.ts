@@ -1,7 +1,8 @@
 'use server';
 
 import { generateThemedFloor } from '@/ai/flows/generate-themed-floor';
-import type { GameDifficulty, Territory } from './types';
+import { generateQuestion as generateQuestionFlow } from '@/ai/flows/generate-question';
+import type { GameDifficulty, Territory, Question } from './types';
 
 export async function generateFloor(
   difficulty: GameDifficulty
@@ -17,6 +18,21 @@ export async function generateFloor(
     console.error(e);
     if (e instanceof Error) {
         return { error: `An unexpected error occurred: ${e.message}` };
+    }
+    return { error: 'An unexpected error occurred.' };
+  }
+}
+
+export async function generateQuestion(
+  theme: string
+): Promise<Question | { error: string }> {
+  try {
+    const result = await generateQuestionFlow({ theme });
+    return result;
+  } catch (e) {
+    console.error(e);
+    if (e instanceof Error) {
+      return { error: `An unexpected error occurred: ${e.message}` };
     }
     return { error: 'An unexpected error occurred.' };
   }
