@@ -12,7 +12,7 @@ import { useFormStatus } from 'react-dom';
 import { Loader2, Play, Users } from 'lucide-react';
 import type { GameDifficulty } from '@/lib/types';
 
-function SubmitButton({ text, loadingText }: { text: string; loadingText: string }) {
+function SubmitButton({ text, loadingText, icon }: { text: string; loadingText: string, icon: React.ReactNode }) {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" className="w-full" size="lg" disabled={pending}>
@@ -22,7 +22,10 @@ function SubmitButton({ text, loadingText }: { text: string; loadingText: string
           {loadingText}
         </>
       ) : (
-        text
+       <>
+        {icon}
+        {text}
+       </>
       )}
     </Button>
   );
@@ -31,7 +34,10 @@ function SubmitButton({ text, loadingText }: { text: string; loadingText: string
 export function GameLobby() {
     const [difficulty, setDifficulty] = useState<GameDifficulty>('easy');
     const [language, setLanguage] = useState('Portuguese');
-    const [joinGameError, joinGameAction] = useActionState(joinGameSession, undefined);
+    
+    // States for form actions
+    const [createGameState, createGameAction] = useActionState(createGameSession, undefined);
+    const [joinGameState, joinGameAction] = useActionState(joinGameSession, undefined);
 
   return (
     <div className="space-y-6">
@@ -41,7 +47,7 @@ export function GameLobby() {
                 <CardDescription>Crie uma nova sala de jogo e convide um amigo para jogar.</CardDescription>
             </CardHeader>
             <CardContent>
-                <form action={createGameSession} className="space-y-4">
+                <form action={createGameAction} className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="difficulty-create">Dificuldade</Label>
                       <Select name="difficulty" onValueChange={(value: GameDifficulty) => setDifficulty(value)} value={difficulty}>
@@ -61,7 +67,7 @@ export function GameLobby() {
                       <Select name="language" onValueChange={(value: string) => setLanguage(value)} value={language}>
                         <SelectTrigger id="language-create">
                           <SelectValue placeholder="Selecione o idioma" />
-                        </SelectTrigger>
+                        </Trigger>
                         <SelectContent>
                             <SelectItem value="Portuguese">Português</SelectItem>
                             <SelectItem value="English">English</SelectItem>
@@ -71,13 +77,15 @@ export function GameLobby() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <SubmitButton text="Criar Jogo" loadingText="A criar..." />
+                    {createGameState?.error && (
+                        <p className="text-sm font-medium text-destructive">{createGameState.error}</p>
+                    )}
+                    <SubmitButton text="Criar Jogo" loadingText="A criar..." icon={<Users className="mr-2 h-5 w-5"/>} />
                 </form>
             </CardContent>
         </Card>
         
         <div className="relative">
-            <Separator />
             <div className="absolute inset-0 flex items-center" aria-hidden="true">
                 <div className="w-full border-t border-border"></div>
             </div>
@@ -104,10 +112,10 @@ export function GameLobby() {
                             className="text-center tracking-[0.5em] uppercase text-lg font-bold"
                         />
                     </div>
-                     {joinGameError?.error && (
-                        <p className="text-sm font-medium text-destructive">{joinGameError.error}</p>
+                     {joinGameState?.error && (
+                        <p className="text-sm font-medium text-destructive">{joinGameState.error}</p>
                     )}
-                    <SubmitButton text="Entrar no Jogo" loadingText="A entrar..." />
+                    <SubmitButton text="Entrar no Jogo" loadingText="A entrar..." icon={<Play className="mr-2 h-5 w-5"/>} />
                 </form>
             </CardContent>
         </Card>

@@ -2,9 +2,9 @@
 
 import { generateThemedFloor } from '@/ai/flows/generate-themed-floor';
 import { generateQuestion as generateQuestionFlow } from '@/ai/flows/generate-question';
-import type { GameDifficulty, Territory, Question, GameState } from './types';
+import type { GameDifficulty, Territory, Question, GameState, PlayerRole, TileData } from './types';
 import { db } from './firebase';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { redirect } from 'next/navigation';
 
 export async function generateFloor(
@@ -27,7 +27,7 @@ export async function generateFloor(
   }
 }
 
-export async function generateQuestion(
+async function generateQuestionsWithImages(
   theme: string,
   language: string,
   count: number = 1
@@ -38,11 +38,13 @@ export async function generateQuestion(
 
     const questionsWithImages = await Promise.all(results.map(async (result) => {
       const imageResult = await getImageForQuery(result.imageQuery);
-      if ('error' in imageResult) {
+      let imageUrl: string | undefined = undefined;
+      if ('url' in imageResult) {
+        imageUrl = imageResult.url;
+      } else {
         console.warn(`Could not fetch image for "${result.imageQuery}": ${imageResult.error}`);
-        return result;
       }
-      return { ...result, imageUrl: imageResult.url };
+      return { ...result, imageUrl };
     }));
     
     return questionsWithImages;
@@ -55,6 +57,8 @@ export async function generateQuestion(
     return { error: 'An unexpected error occurred.' };
   }
 }
+
+export { generateQuestionsWithImages as generateQuestion }
 
 export async function getImageForQuery(query: string): Promise<{ url: string } | { error: string }> {
   const accessKey = process.env.PIXABAY_API_KEY;
@@ -99,32 +103,17 @@ function generateGameId(length = 6) {
 }
 
 
-export async function createGameSession(formData: FormData) {
+export async function createGameSession(prevState: any, formData: FormData) {
   const difficulty = formData.get('difficulty') as GameDifficulty;
   const language = formData.get('language') as string;
   const gameId = generateGameId();
 
-  const floorResult = await generateFloor(difficulty, language);
-  if('error' in floorResult) {
-    throw new Error(`Failed to generate floor: ${floorResult.error}`);
-  }
-
-  const initialBoard = floorResult.territories.map((t, i) => ({
-    id: i,
-    theme: t.theme,
-    owner: 'unowned'
-  }));
-  
-  initialBoard[0].owner = 'player1';
-  initialBoard[initialBoard.length - 1].owner = 'player2';
-
-  const initialGameState: GameState = {
+  const initialGameState: Partial<GameState> = {
     gameId,
     difficulty,
     language,
     status: 'waiting',
-    board: initialBoard,
-    scores: { player1: 1, player2: 1 },
+    scores: { player1: 0, player2: 0 },
     turn: 'player1',
     players: {
       player1: 'player1_id', // This would be the actual user ID
@@ -136,16 +125,14 @@ export async function createGameSession(formData: FormData) {
     await setDoc(doc(db, 'games', gameId), initialGameState);
   } catch (error) {
     console.error("Failed to create game session in Firestore:", error);
-    if (error instanceof Error) {
-       throw new Error(`Could not create game in database: ${error.message}`);
-    }
-    throw new Error('Could not create game in database.');
+    const errorMessage = error instanceof Error ? error.message : 'Could not create game in database.';
+    return { error: `Database error: ${errorMessage}` };
   }
 
   redirect(`/play/multiplayer/${gameId}`);
 }
 
-export async function joinGameSession(formData: FormData) {
+export async function joinGameSession(prevState: any, formData: FormData) {
     const gameId = (formData.get('gameId') as string)?.toUpperCase();
 
     if (!gameId || gameId.length !== 6) {
@@ -153,13 +140,184 @@ export async function joinGameSession(formData: FormData) {
     }
 
     const gameDocRef = doc(db, 'games', gameId);
-    const gameDoc = await getDoc(gameDocRef);
+    
+    try {
+      const gameDoc = await getDoc(gameDocRef);
 
-    if (!gameDoc.exists()) {
-        return { error: 'Jogo não encontrado. Verifique o código e tente novamente.' };
+      if (!gameDoc.exists()) {
+          return { error: 'Jogo não encontrado. Verifique o código e tente novamente.' };
+      }
+
+      const gameState = gameDoc.data() as GameState;
+
+      if (gameState.status !== 'waiting') {
+        return { error: 'Este jogo já começou ou já terminou.' };
+      }
+      
+      // Add player 2 and start the game
+      await updateDoc(gameDocRef, {
+        'players.player2': 'player2_id', // This would be the actual user ID
+        'status': 'generating'
+      });
+
+      // Generate the floor in the background
+      generateFloor(gameState.difficulty, gameState.language).then(floorResult => {
+          if('error' in floorResult) {
+            console.error(`Failed to generate floor for game ${gameId}: ${floorResult.error}`);
+            updateDoc(gameDocRef, { status: 'error', errorMessage: floorResult.error });
+            return;
+          }
+
+          const initialBoard: TileData[] = floorResult.territories.map((t, i) => ({
+            id: i,
+            theme: t.theme,
+            owner: 'unowned'
+          }));
+          
+          initialBoard[0].owner = 'player1';
+          initialBoard[initialBoard.length - 1].owner = 'player2';
+
+          updateDoc(gameDocRef, {
+            board: initialBoard,
+            scores: { player1: 1, player2: 1 },
+            status: 'playing',
+          });
+      });
+
+    } catch (error) {
+       console.error("Failed to join game session in Firestore:", error);
+       const errorMessage = error instanceof Error ? error.message : 'Could not join game in database.';
+       return { error: `Database error: ${errorMessage}` };
     }
     
-    // Logic to add player2 to the game would go here
-    // For now, we just redirect.
     redirect(`/play/multiplayer/${gameId}`);
+}
+
+
+export async function handleTileClick(gameId: string, tileId: number, player: PlayerRole) {
+  const gameDocRef = doc(db, 'games', gameId);
+  try {
+    const gameDoc = await getDoc(doc(db, 'games', gameId));
+    if (!gameDoc.exists()) throw new Error("Game not found");
+    const gameState = gameDoc.data() as GameState;
+
+    if (gameState.status !== 'playing' || gameState.turn !== player) {
+      return { error: "Não é a sua vez de jogar." };
+    }
+    
+    const tile = gameState.board.find(t => t.id === tileId);
+    if (!tile) throw new Error("Tile not found");
+
+    await updateDoc(gameDocRef, { status: 'processing' });
+    
+    const isDuel = tile.owner !== 'unowned' && tile.owner !== player;
+    const questionTheme = tile.theme;
+    
+    let questionCount = 1;
+    if (isDuel) {
+       const opponent = player === 'player1' ? 'player2' : 'player1';
+       const territoryCount = gameState.board.filter(t => t.owner === opponent && t.theme === questionTheme).length;
+       questionCount = Math.max(1, territoryCount); // Simplified for now
+    }
+
+    const questions = await generateQuestionsWithImages(questionTheme, gameState.language, questionCount);
+    if ('error' in questions) {
+       await updateDoc(gameDocRef, { status: 'playing' });
+       return { error: questions.error };
+    }
+
+    if (isDuel) {
+        await updateDoc(gameDocRef, {
+            activeQuestion: {
+                challenger: player,
+                tile: tile,
+            },
+            duelState: {
+                challenger: player,
+                questions: questions,
+                activeQuestionIndex: 0,
+                scores: { player1: 0, player2: 0 },
+                timeRemaining: 15 * questions.length, // Simplified timer
+            },
+            status: 'playing', // Back to playing to allow answers
+        });
+    } else {
+        await updateDoc(gameDocRef, {
+            activeQuestion: {
+                challenger: player,
+                tile: tile,
+                question: questions[0],
+            },
+            duelState: null,
+            status: 'playing',
+        });
+    }
+
+  } catch(e) {
+     await updateDoc(gameDocRef, { status: 'playing' });
+     console.error(e);
+     if (e instanceof Error) return { error: e.message };
+     return { error: "An unknown error occurred." };
+  }
+}
+
+export async function checkEndGame(gameId: string, wasTurnSuccessful: boolean, currentTurnPlayer: PlayerRole, conqueredTileId: number) {
+  const gameDocRef = doc(db, 'games', gameId);
+  const gameDoc = await getDoc(gameDocRef);
+  if (!gameDoc.exists()) throw new Error("Game not found during checkEndGame");
+  
+  let gameState = gameDoc.data() as GameState;
+  let newBoard = [...gameState.board];
+  let tileWasConquered = false;
+  const conqueredTile = newBoard.find(t => t.id === conqueredTileId);
+
+  if (wasTurnSuccessful && conqueredTile) {
+    const winnerOfTurn = currentTurnPlayer;
+    const loserOfTurn = winnerOfTurn === 'player1' ? 'player2' : 'player1';
+      
+    const isDuelWin = conqueredTile.owner === loserOfTurn;
+
+    if (isDuelWin) {
+        tileWasConquered = true;
+        const conqueredTheme = conqueredTile.theme;
+        newBoard = newBoard.map(t => {
+          if (t.owner === loserOfTurn && t.theme === conqueredTheme) {
+            return { ...t, owner: winnerOfTurn };
+          }
+          return t;
+        });
+    } else if (conqueredTile.owner === 'unowned') {
+        tileWasConquered = true;
+        newBoard = newBoard.map(t =>
+          t.id === conqueredTile.id ? { ...t, owner: winnerOfTurn } : t
+        );
+    }
+  }
+
+  const newScores = {
+    player1: newBoard.filter(t => t.owner === 'player1').length,
+    player2: newBoard.filter(t => t.owner === 'player2').length,
+  };
+
+  let winner: PlayerRole | 'draw' | null = null;
+  let status: GameState['status'] = 'playing';
+
+  if (newScores.player1 === 0 || newScores.player2 === 0 || newScores.player1 + newScores.player2 === newBoard.length) {
+      if (newScores.player1 > newScores.player2) winner = 'player1';
+      else if (newScores.player2 > newScores.player1) winner = 'player2';
+      else winner = 'draw';
+      status = 'finished';
+  }
+  
+  const nextTurn = tileWasConquered ? currentTurnPlayer : (currentTurnPlayer === 'player1' ? 'player2' : 'player1');
+
+  await updateDoc(gameDocRef, {
+    board: newBoard,
+    scores: newScores,
+    turn: nextTurn,
+    winner: winner,
+    status: status,
+    activeQuestion: null,
+    duelState: null,
+  });
 }

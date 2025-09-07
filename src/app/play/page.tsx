@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { generateFloor, generateQuestion } from '@/lib/actions';
+import { generateFloor as generateFloorAction, generateQuestion as generateQuestionAction } from '@/lib/actions';
 import type { GameDifficulty, Player, Territory, Question, DuelState } from '@/lib/types';
 import { GameSetup } from '@/components/game-setup';
 import { GameBoard } from '@/components/game-board';
@@ -87,24 +87,24 @@ export default function PlayPage() {
       const winnerOfTurn = currentTurnPlayer;
       const loserOfTurn = winnerOfTurn === 'player' ? 'ai' : 'player';
       
-      if (tileConquered.owner !== winnerOfTurn) {
-        tileWasConquered = true;
-        
-        // Duel win condition: conquer all territories of that theme from the opponent
-        if (tileConquered.owner === loserOfTurn) {
-            const conqueredTheme = tileConquered.theme;
-            newBoard = newBoard.map(t => {
-              if (t.owner === loserOfTurn && t.theme === conqueredTheme) {
-                return { ...t, owner: winnerOfTurn };
-              }
-              return t;
-            });
-        } else if (tileConquered.owner === 'unowned') {
-            // Normal win condition: conquer a single unowned tile
-            newBoard = newBoard.map(t =>
-              t.id === tileConquered.id ? { ...t, owner: winnerOfTurn } : t
-            );
-        }
+       // Check if the conquered tile belonged to the opponent, triggering a full theme conquest
+      const isDuelWin = tileConquered.owner === loserOfTurn;
+
+      if (isDuelWin) {
+          tileWasConquered = true;
+          const conqueredTheme = tileConquered.theme;
+          newBoard = newBoard.map(t => {
+            if (t.owner === loserOfTurn && t.theme === conqueredTheme) {
+              return { ...t, owner: winnerOfTurn };
+            }
+            return t;
+          });
+      } else if (tileConquered.owner === 'unowned') {
+          // Normal win condition: conquer a single unowned tile
+          tileWasConquered = true;
+          newBoard = newBoard.map(t =>
+            t.id === tileConquered.id ? { ...t, owner: winnerOfTurn } : t
+          );
       }
     }
 
@@ -169,7 +169,7 @@ export default function PlayPage() {
     localStorage.setItem('tile-takeover-difficulty', diff);
     localStorage.setItem('tile-takeover-language', lang);
 
-    const result = await generateFloor(diff, lang);
+    const result = await generateFloorAction(diff, lang);
     if ('error' in result) {
       toast({
         title: 'Erro a criar o tabuleiro',
@@ -220,7 +220,7 @@ export default function PlayPage() {
         description: `A gerar ${questionCount} pergunta(s) sobre "${questionTheme}".`,
     });
 
-    const questionResult = await generateQuestion(questionTheme, language, questionCount);
+    const questionResult = await generateQuestionAction(questionTheme, language, questionCount);
 
     if ('error' in questionResult) {
         toast({
@@ -233,8 +233,6 @@ export default function PlayPage() {
         return;
     }
     
-    setActiveQuestion(questionResult[0]);
-
     if (isDuel) {
         const totalDuelTime = DUEL_TIME_PER_QUESTION * questionResult.length;
         toast({
@@ -242,6 +240,7 @@ export default function PlayPage() {
             description: `Tema: "${questionTheme}". Você tem ${totalDuelTime} segundos para responder a ${questionResult.length} pergunta(s).`,
         });
         
+        setActiveQuestion(questionResult[0]);
         setDuel({
             challenger: 'player',
             questions: questionResult,
@@ -253,6 +252,7 @@ export default function PlayPage() {
         
         setGameState('duel');
     } else { 
+        setActiveQuestion(questionResult[0]);
         setGameState('question');
     }
   };
@@ -287,8 +287,6 @@ export default function PlayPage() {
           aiCorrect: newAiCorrect,
       };
 
-      setDuel(updatedDuelState);
-
       if (nextQuestionIndex < duel.questions.length) {
         // More questions in the duel, move to the next one
         setTimeout(() => {
@@ -302,6 +300,8 @@ export default function PlayPage() {
         // Last question answered, end the duel
         if (timerRef.current) clearInterval(timerRef.current);
         const tileToConquer = activeTile;
+        // Need to set duel state here before calling endDuel
+        setDuel(updatedDuelState); 
         endDuel(updatedDuelState, tileToConquer);
       }
     }
@@ -314,8 +314,8 @@ export default function PlayPage() {
     }
     if (gameState === 'duel' && duel) {
       // If player closes modal during their duel, they lose the challenge
-      const wasTurnSuccessful = duel.challenger !== 'player';
-      endTurn(wasTurnSuccessful, duel.challenger, activeTile);
+       if (timerRef.current) clearInterval(timerRef.current);
+      endDuel(duel, activeTile);
     }
   };
 
@@ -529,10 +529,17 @@ export default function PlayPage() {
             gridSize={gridSize}
             onTileClick={handleTileClick}
             playerTurn={turn === 'player' && gameState === 'playing'}
+            currentPlayer={'player'}
           />
           {gameState === 'fetching_question' && (
             <div className="absolute inset-0 bg-black/10 flex flex-col items-center justify-center z-10 rounded-lg pointer-events-none">
                  <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            </div>
+          )}
+           {gameState === 'ai_turn' && (
+            <div className="absolute inset-0 bg-black/10 flex flex-col items-center justify-center z-10 rounded-lg pointer-events-none">
+                 <Loader2 className="h-10 w-10 animate-spin text-destructive" />
+                 <p className="mt-2 font-semibold text-destructive-foreground bg-destructive/80 px-4 py-2 rounded-md">A IA está a pensar...</p>
             </div>
           )}
         </main>
@@ -545,6 +552,7 @@ export default function PlayPage() {
         onAnswer={handleAnswer}
         onClose={handleModalClose}
         duel={duel}
+        currentPlayer={'player'}
       />
       <GameOverDialog
         isOpen={gameState === 'finished'}
