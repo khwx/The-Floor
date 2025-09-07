@@ -128,7 +128,10 @@ export default function PlayPage() {
         setDefendingTile(null);
         return;
     }
-    setActiveQuestion(questionResult);
+
+    const imageUrl = `https://picsum.photos/seed/${encodeURIComponent(questionResult.imageQuery)}/400/300`;
+    
+    setActiveQuestion({...questionResult, imageUrl});
     setGameState('question');
   };
   
@@ -136,18 +139,22 @@ export default function PlayPage() {
     if (!activeTile) return;
 
     const winnerOfDuel = correct ? turn : (turn === 'player' ? 'ai' : 'player');
-    const newOwner = winnerOfDuel;
-
+    
     let newBoard: TileData[];
 
     if (activeTile.owner === 'unowned') {
       newBoard = board.map(t =>
-        t.id === activeTile.id ? { ...t, owner: newOwner } : t
+        t.id === activeTile.id ? { ...t, owner: winnerOfDuel } : t
       );
     } else {
+      // Duel logic: winner takes all territories from the loser
       const loserOfDuel = winnerOfDuel === 'player' ? 'ai' : 'player';
       newBoard = board.map(t =>
-        t.owner === loserOfDuel ? { ...t, owner: newOwner } : t
+        t.owner === loserOfDuel ? { ...t, owner: winnerOfDuel } : t
+      );
+       // The challenged tile also goes to the winner
+      newBoard = newBoard.map(t =>
+        t.id === activeTile.id ? { ...t, owner: winnerOfDuel } : t
       );
     }
 
@@ -254,7 +261,6 @@ export default function PlayPage() {
 
           setTimeout(() => {
             const winnerOfDuel = isCorrect ? 'ai' : 'player';
-            const newOwner = winnerOfDuel;
             
             toast({
                 title: `A IA respondeu... ${isCorrect ? 'corretamente!' : 'incorretamente!'}`,
@@ -265,12 +271,15 @@ export default function PlayPage() {
     
             if (bestMove.owner === 'unowned') {
               newBoard = board.map(t =>
-                t.id === bestMove.id ? { ...t, owner: newOwner } : t
+                t.id === bestMove.id ? { ...t, owner: winnerOfDuel } : t
               );
             } else {
               const loserOfDuel = winnerOfDuel === 'player' ? 'ai' : 'player';
               newBoard = board.map(t =>
-                t.owner === loserOfDuel ? { ...t, owner: newOwner } : t
+                t.owner === loserOfDuel ? { ...t, owner: winnerOfDuel } : t
+              );
+               newBoard = newBoard.map(t =>
+                t.id === bestMove.id ? { ...t, owner: winnerOfDuel } : t
               );
             }
             

@@ -17,4 +17,5 @@ export type Question = {
   options: string[];
   answer: string;
   imageQuery: string;
+  imageUrl?: string;
 };

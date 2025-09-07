@@ -13,6 +13,7 @@ import { getIconForTheme } from './icons';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Swords } from 'lucide-react';
+import Image from 'next/image';
 
 type QuestionModalProps = {
   isOpen: boolean;
@@ -93,10 +94,21 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, defen
           </div>
         ) : (
           <div>
-            <div className="my-4 text-lg font-semibold text-center">
+            {question.imageUrl && (
+                <div className="relative aspect-[4/3] w-full mb-4 rounded-md overflow-hidden bg-muted">
+                    <Image 
+                        src={question.imageUrl}
+                        alt={question.imageQuery}
+                        fill
+                        className="object-cover"
+                        data-ai-hint={question.imageQuery}
+                    />
+                </div>
+            )}
+            <div className="text-lg font-semibold text-center">
               {question.question}
             </div>
-            <div className="grid grid-cols-1 gap-3">
+            <div className="mt-4 grid grid-cols-1 gap-3">
               {question.options.map((option, index) => (
                 <Button
                   key={index}
