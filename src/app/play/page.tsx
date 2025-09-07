@@ -16,6 +16,12 @@ import { useAudio } from '@/hooks/use-audio';
 
 type GameState = 'setup' | 'loading_board' | 'playing' | 'fetching_question' | 'ai_turn' | 'question' | 'duel' | 'finished';
 
+type TileData = {
+  id: number;
+  theme: string;
+  owner: Player | 'unowned';
+};
+
 const DUEL_TIME_PER_QUESTION = 10; // seconds
 const MIN_DUEL_QUESTIONS = 5;
 
@@ -80,12 +86,12 @@ export default function PlayPage() {
       playAudio('/sounds/conquer.mp3');
       const winnerOfTurn = currentTurnPlayer;
       const loserOfTurn = winnerOfTurn === 'player' ? 'ai' : 'player';
-
-      const isDuel = tileConquered.owner === loserOfTurn;
       
       if (tileConquered.owner !== winnerOfTurn) {
         tileWasConquered = true;
-        if (isDuel) {
+        
+        // Duel win condition: conquer all territories of that theme from the opponent
+        if (tileConquered.owner === loserOfTurn) {
             const conqueredTheme = tileConquered.theme;
             newBoard = newBoard.map(t => {
               if (t.owner === loserOfTurn && t.theme === conqueredTheme) {
@@ -94,6 +100,7 @@ export default function PlayPage() {
               return t;
             });
         } else if (tileConquered.owner === 'unowned') {
+            // Normal win condition: conquer a single unowned tile
             newBoard = newBoard.map(t =>
               t.id === tileConquered.id ? { ...t, owner: winnerOfTurn } : t
             );
@@ -118,18 +125,23 @@ export default function PlayPage() {
       return;
     }
     
+    // "Winner continues" logic
     if (tileWasConquered) {
+      // If a tile was taken, the current player continues
       setGameState(currentTurnPlayer === 'ai' ? 'ai_turn' : 'playing');
     } else {
+      // If no tile was taken (wrong answer), switch turns
       const nextTurn = currentTurnPlayer === 'player' ? 'ai' : 'player';
       setTurn(nextTurn);
       setGameState(nextTurn === 'ai' ? 'ai_turn' : 'playing');
     }
   }, [board, checkEndGame, playAudio]);
 
+
   const endDuel = useCallback((finalDuelState: DuelState, duelTile: TileData) => {
     let wasTurnSuccessful: boolean;
     if (finalDuelState.challenger === 'player') {
+      // Challenger must have more correct answers to win
       wasTurnSuccessful = finalDuelState.playerCorrect > finalDuelState.aiCorrect;
     } else { // AI is challenger
       wasTurnSuccessful = finalDuelState.aiCorrect > finalDuelState.playerCorrect;
@@ -256,12 +268,14 @@ export default function PlayPage() {
 
     if (gameState === 'question') {
       const tileToConquer = activeTile;
+      // Delay to show the correct/incorrect answer flash
       setTimeout(() => endTurn(correct, 'player', tileToConquer), 1500);
       return;
     }
 
     if (gameState === 'duel' && duel) {
       const newPlayerCorrect = duel.playerCorrect + (correct ? 1 : 0);
+      // In a player duel, the AI's response is simulated.
       const aiResponseCorrect = Math.random() > 0.35; // AI has a 65% chance of being correct
       const newAiCorrect = duel.aiCorrect + (aiResponseCorrect ? 1 : 0);
 
@@ -276,14 +290,16 @@ export default function PlayPage() {
       setDuel(updatedDuelState);
 
       if (nextQuestionIndex < duel.questions.length) {
+        // More questions in the duel, move to the next one
         setTimeout(() => {
             setDuel({
               ...updatedDuelState,
               activeQuestionIndex: nextQuestionIndex,
             });
             setActiveQuestion(duel.questions[nextQuestionIndex]);
-        }, 1500); 
+        }, 1500); // Delay to show flash
       } else {
+        // Last question answered, end the duel
         if (timerRef.current) clearInterval(timerRef.current);
         const tileToConquer = activeTile;
         endDuel(updatedDuelState, tileToConquer);
@@ -297,6 +313,7 @@ export default function PlayPage() {
       endTurn(false, 'player', activeTile);
     }
     if (gameState === 'duel' && duel) {
+      // If player closes modal during their duel, they lose the challenge
       const wasTurnSuccessful = duel.challenger !== 'player';
       endTurn(wasTurnSuccessful, duel.challenger, activeTile);
     }
@@ -422,25 +439,31 @@ export default function PlayPage() {
                 description: `A IA desafia o seu território de "${theme}". Prepare-se para um duelo de ${numQuestions} perguntas!`,
             });
             
-            let aiCorrect = 0;
-            let playerCorrect = 0;
-            for(let i = 0; i < numQuestions; i++){
-                if (Math.random() > 0.35) aiCorrect++; 
-                if (Math.random() > 0.5) playerCorrect++; 
-            }
-
-            const aiWon = aiCorrect > playerCorrect;
-
+            // Simulate duel after a short delay
             setTimeout(() => {
+                let aiCorrect = 0;
+                let playerCorrect = 0;
+                // Simulate answers for the duel
+                for(let i = 0; i < numQuestions; i++){
+                    if (Math.random() > 0.35) aiCorrect++; // AI is 65% likely to be correct
+                    if (Math.random() > 0.5) playerCorrect++; // Player is 50% likely to be correct
+                }
+
+                const aiWon = aiCorrect > playerCorrect;
+                
                 if (aiWon) {
                     playAudio('/sounds/lose.mp3');
                 }
+                
                 toast({
                     title: `Duelo com IA terminado!`,
                     description: `A IA acertou ${aiCorrect} e você ${playerCorrect}. A IA ${aiWon ? 'venceu' : 'perdeu'}!`,
                     variant: aiWon ? 'destructive' : 'default'
                 });
-                endTurn(aiWon, 'ai', targetTile!);
+                // Use a different timeout to announce result before ending turn
+                setTimeout(() => {
+                  endTurn(aiWon, 'ai', targetTile!);
+                }, 1500)
             }, 2000);
 
         } else {
@@ -451,6 +474,7 @@ export default function PlayPage() {
             
             const isCorrect = Math.random() > 0.35; // 65% chance to be correct
 
+            // Simulate AI thinking time
             setTimeout(() => {
                 if (isCorrect) {
                   playAudio('/sounds/correct.mp3');
@@ -461,7 +485,12 @@ export default function PlayPage() {
                     title: `A IA respondeu ${isCorrect ? 'corretamente' : 'incorretamente'}!`,
                     variant: isCorrect ? 'default' : 'destructive'
                 });
-                endTurn(isCorrect, 'ai', targetTile!);
+
+                // Use another timeout to show result before ending turn
+                setTimeout(() => {
+                    endTurn(isCorrect, 'ai', targetTile!);
+                }, 1500);
+
             }, 2000);
         }
 
@@ -501,8 +530,9 @@ export default function PlayPage() {
             onTileClick={handleTileClick}
             playerTurn={turn === 'player' && gameState === 'playing'}
           />
-          {(gameState === 'ai_turn' || gameState === 'fetching_question') && (
+          {gameState === 'fetching_question' && (
             <div className="absolute inset-0 bg-black/10 flex flex-col items-center justify-center z-10 rounded-lg pointer-events-none">
+                 <Loader2 className="h-10 w-10 animate-spin text-primary" />
             </div>
           )}
         </main>
