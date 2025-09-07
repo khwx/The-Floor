@@ -273,13 +273,9 @@ export default function PlayPage() {
       return;
     }
     
-    setTurn(turn === 'player' ? 'ai' : 'player');
-    setGameState('playing'); // <- Change to playing first
-    if(winnerOfTurn !== turn) { // If turn didn't succeed, next turn starts after AI thinking
-       setTimeout(() => setGameState('ai_thinking'), 50);
-    } else { // if turn suceeded, AI thinking starts immediately
-        setGameState('ai_thinking');
-    }
+    const nextTurn = turn === 'player' ? 'ai' : 'player';
+    setTurn(nextTurn);
+    setGameState(nextTurn === 'ai' ? 'ai_thinking' : 'playing');
   };
 
 
@@ -290,8 +286,9 @@ export default function PlayPage() {
     }
     // Closing the modal during a duel is a loss for the challenger.
     if (gameState === 'duel' && duel) {
-      const challengerWon = false; // Challenger always loses on close
-      endTurn(challengerWon);
+      // Challenger loses if they close the modal.
+      const wasTurnSuccessful = duel.challenger !== 'player';
+      endTurn(wasTurnSuccessful);
     }
   };
 
@@ -340,7 +337,10 @@ export default function PlayPage() {
             variant: "destructive",
           });
           
-          setTimeout(() => endDuel({...prevDuel, timeRemaining: 0}), 1500);
+          // Use a new DuelState object for the final calculation
+          const finalDuelState: DuelState = {...prevDuel, timeRemaining: 0};
+          
+          setTimeout(() => endDuel(finalDuelState), 1500);
           
           return { ...prevDuel, timeRemaining: 0 };
         });
@@ -350,7 +350,9 @@ export default function PlayPage() {
 
   // Effect to start duel timer
   useEffect(() => {
-    if (gameState === 'duel' && duel && duel.timeRemaining > 0 && timerRef.current === null) {
+    if (gameState === 'duel' && duel && duel.timeRemaining > 0) {
+      // Clear any existing timer before starting a new one
+      if (timerRef.current) clearInterval(timerRef.current);
       startDuelTimer();
     }
     
@@ -416,7 +418,6 @@ export default function PlayPage() {
               return;
           }
           
-          setActiveQuestion(questionResult[0]);
           const totalDuelTime = DUEL_TIME_PER_QUESTION * questionResult.length;
           
           const aiDuelState: DuelState = {
@@ -508,9 +509,8 @@ export default function PlayPage() {
             playerTurn={turn === 'player' && gameState === 'playing'}
           />
           {(gameState === 'ai_thinking' && turn === 'ai') && (
-            <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex flex-col items-center justify-center z-10 rounded-lg">
-                <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                <p className="mt-4 text-xl font-semibold">A IA está a pensar...</p>
+            <div className="absolute inset-0 bg-transparent flex flex-col items-center justify-center z-10 rounded-lg">
+                {/* A animação de loading foi removida para dar lugar a toasts informativos */}
             </div>
           )}
         </main>
@@ -533,5 +533,3 @@ export default function PlayPage() {
     </div>
   );
 }
-
-    
