@@ -103,7 +103,6 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, defen
                         height={300}
                         className="object-cover"
                         data-ai-hint={question.imageQuery}
-                        unoptimized
                     />
                 </div>
             )}

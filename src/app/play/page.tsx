@@ -129,7 +129,7 @@ export default function PlayPage() {
         return;
     }
     
-    const imageUrl = `https://images.unsplash.com/search/photos?query=${encodeURIComponent(questionResult.imageQuery)}`;
+    const imageUrl = `https://source.unsplash.com/400x300/?${encodeURIComponent(questionResult.imageQuery)}`;
     
     setActiveQuestion({...questionResult, imageUrl});
     setGameState('question');
