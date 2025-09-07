@@ -39,39 +39,29 @@ const prompt = ai.definePrompt({
   name: 'generateThemedFloorPrompt',
   input: {schema: GenerateThemedFloorInputSchema},
   output: {schema: GenerateThemedFloorOutputSchema},
-  prompt: `You are a game designer who generates floor divisions for a trivia game called "Tile Takeover". The floor is divided into territories, each with a theme. The themes should be visually distinct and cohesive. The difficulty should influence the complexity and variety of themes.
+  prompt: `You are a game designer creating themed floors for a trivia game. The floor is divided into territories, each with a theme.
 
 Difficulty: {{{difficulty}}}
 
-Based on the difficulty, generate a JSON string that represents the floor division. The JSON string should include the following keys:
+Generate a valid, parsable JSON string for the floor division. The JSON must have a "territories" key, which is an array of objects, each with a "theme" string.
 
-- territories: An array of territory objects.
-- theme: The theme of the territory (e.g., historical landmarks, science, animals, general trivia).
+Follow these rules based on the difficulty:
+- easy: Use only "animals" and "general trivia" themes. Generate 4 territories.
+- medium: Use only "animals", "general trivia", and "historical landmarks" themes. Generate 9 territories.
+- hard: You can use any theme, including "science", "technology", "movies", etc. Generate 16 territories.
 
-Ensure that the generated JSON string is valid and parsable.
-
-Example:
+Example for 'easy' difficulty:
 {
   "territories": [
-    { "theme": "historical landmarks" },
-    { "theme": "science" },
-    { "theme": "animals" }
+    { "theme": "animals" },
+    { "theme": "general trivia" },
+    { "theme": "animals" },
+    { "theme": "general trivia" }
   ]
 }
 
-Ensure that the number of themes and the complexity of the floor division are appropriate for the specified difficulty level. For easy difficulty, use fewer themes and simpler divisions. For hard difficulty, use more themes and more complex divisions.
-
-{{#if (eq difficulty 'easy')}}
-Limit yourself to these themes: animals, general trivia.
-{{/if}}
-
-{{#if (eq difficulty 'medium')}}
-Limit yourself to these themes: animals, general trivia, historical landmarks.
-{{/if}}
-
-{{#if (eq difficulty 'hard')}}
-Use any themes.
-{{/if}}`,
+Now, generate the floor division for the specified difficulty.
+`,
   config: {
     model,
   }
