@@ -10,7 +10,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import type { TileData, Question, DuelState } from '@/lib/types';
+import type { TileData, Question, DuelState, Player } from '@/lib/types';
 import { getIconForTheme } from './icons';
 import { Loader2, Swords, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -23,9 +23,10 @@ type QuestionModalProps = {
   onAnswer: (correct: boolean) => void;
   onClose: () => void;
   duel: DuelState | null;
+  currentPlayer?: Player;
 };
 
-export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel }: QuestionModalProps) {
+export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel, currentPlayer }: QuestionModalProps) {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -71,6 +72,12 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel 
   }
 
   const isDuel = !!duel;
+  let duelTurnPlayer: Player | null = null;
+  if(isDuel) {
+      const isChallengerTurn = (duel.activeQuestionIndex % 2 === 0);
+      duelTurnPlayer = isChallengerTurn ? duel.challenger : (duel.challenger === 'player1' ? 'player2' : 'player1');
+  }
+  const displayPlayer = isDuel ? duelTurnPlayer : currentPlayer;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -80,7 +87,7 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel 
             <div className="flex justify-between items-center">
               <DialogTitle className="flex items-center gap-2 text-2xl">
                 <Swords className="h-6 w-6 text-primary" />
-                <span>Duelo de Temas! ({duel.activeQuestionIndex + 1}/{duel.questions.length})</span>
+                <span>Duelo! ({duel.activeQuestionIndex + 1}/{duel.questions.length})</span>
               </DialogTitle>
               <div className="flex items-center gap-2 text-2xl font-bold text-primary">
                 <Clock className="h-6 w-6" />
@@ -95,8 +102,8 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel 
            )}
           <DialogDescription>
             {isDuel
-              ? `A pergunta é sobre o tema do território do seu adversário: "${tile.theme}".`
-              : 'Responda à pergunta abaixo para conquistar a casa.'}
+              ? `Vez do ${displayPlayer === 'player1' ? 'Jogador 1' : 'Jogador 2'}. Tema: "${tile.theme}".`
+              : `Vez do ${displayPlayer === 'player' ? 'Jogador' : displayPlayer === 'player1' ? 'Jogador 1' : 'Jogador 2'}. Responda à pergunta para conquistar a casa.`}
           </DialogDescription>
         </DialogHeader>
         

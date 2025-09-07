@@ -38,23 +38,25 @@ export default function Home() {
           </CardContent>
         </Card>
 
-        <Card className="border-dashed opacity-60 cursor-not-allowed">
+        <Card className="hover:shadow-primary/20 hover:shadow-lg transition-shadow duration-300 transform hover:-translate-y-1">
            <CardHeader>
             <div className="flex items-center gap-4">
-              <Users className="w-10 h-10 text-muted-foreground" />
+              <Users className="w-10 h-10 text-primary" />
               <div>
-                <CardTitle className="text-2xl text-muted-foreground">Jogo em Equipa</CardTitle>
+                <CardTitle className="text-2xl">Jogo em Equipa</CardTitle>
                 <CardDescription>Reúna a sua equipa para a vitória.</CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent>
              <p className="mb-4 text-muted-foreground">
-              Junte-se a amigos e compita contra equipas controladas pela IA. A coordenação é a chave para dominar o tabuleiro.
+              Junte-se a um amigo no mesmo dispositivo e compita pela dominação do tabuleiro. Quem sabe mais?
             </p>
-            <Button className="w-full" size="lg" disabled>
-              Brevemente
-            </Button>
+            <Link href="/play/multiplayer" passHref>
+              <Button className="w-full" size="lg">
+                Jogar Agora
+              </Button>
+            </Link>
           </CardContent>
         </Card>
       </div>

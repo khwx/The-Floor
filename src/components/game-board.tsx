@@ -1,6 +1,6 @@
 'use client';
 
-import type { TileData } from '@/lib/types';
+import type { Player, TileData } from '@/lib/types';
 import { Tile } from './tile';
 import { useCallback } from 'react';
 
@@ -9,15 +9,17 @@ type GameBoardProps = {
   gridSize: { rows: number; cols: number };
   onTileClick: (tile: TileData) => void;
   playerTurn: boolean;
+  currentPlayer?: Player;
 };
 
-export function GameBoard({ board, gridSize, onTileClick, playerTurn }: GameBoardProps) {
+export function GameBoard({ board, gridSize, onTileClick, playerTurn, currentPlayer }: GameBoardProps) {
   
-  const getIsAdjacentToPlayer = useCallback((tileId: number): boolean => {
-    const playerTiles = board.filter(t => t.owner === 'player').map(t => t.id);
+  const getIsAdjacentToPlayer = useCallback((tileId: number, player: Player): boolean => {
+    const playerTiles = board.filter(t => t.owner === player).map(t => t.id);
     const { rows, cols } = gridSize;
     
-    // Check all player tiles to see if any are neighbors to the target tileId
+    if (rows === 0 || cols === 0) return false;
+
     for (const playerTileId of playerTiles) {
         const r = Math.floor(playerTileId / cols);
         const c = playerTileId % cols;
@@ -45,13 +47,20 @@ export function GameBoard({ board, gridSize, onTileClick, playerTurn }: GameBoar
       }}
     >
       {board.map((tile) => {
-        // Player can click on unowned tiles adjacent to their own,
-        // or any AI-owned tile to start a duel.
-        const isAdjacent = getIsAdjacentToPlayer(tile.id);
+        const activePlayer = currentPlayer || 'player';
+        const opponent = {
+          'player': 'ai',
+          'ai': 'player',
+          'player1': 'player2',
+          'player2': 'player1',
+        }[activePlayer];
+
+        const isAdjacent = getIsAdjacentToPlayer(tile.id, activePlayer);
+        
         const isClickable =
           playerTurn &&
-          tile.owner !== 'player' &&
-          (tile.owner === 'ai' || (tile.owner === 'unowned' && isAdjacent));
+          tile.owner !== activePlayer &&
+          (tile.owner === opponent || (tile.owner === 'unowned' && isAdjacent));
         
         return (
           <Tile

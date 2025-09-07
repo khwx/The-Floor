@@ -13,16 +13,17 @@ type GameSetupProps = {
   onStart: (difficulty: GameDifficulty, language: string, startingPlayer: Player) => void;
   lastDifficulty?: GameDifficulty;
   lastLanguage?: string;
+  mode: 'singleplayer' | 'multiplayer';
 };
 
-export function GameSetup({ onStart, lastDifficulty, lastLanguage }: GameSetupProps) {
+export function GameSetup({ onStart, lastDifficulty, lastLanguage, mode }: GameSetupProps) {
   const [difficulty, setDifficulty] = useState<GameDifficulty>('easy');
   const [language, setLanguage] = useState<string>('Portuguese');
   const [startingPlayer, setStartingPlayer] = useState<Player>('player');
 
   useEffect(() => {
-    const savedDifficulty = localStorage.getItem('tile-takeover-difficulty') as GameDifficulty;
-    const savedLanguage = localStorage.getItem('tile-takeover-language');
+    const savedDifficulty = localStorage.getItem(`tile-takeover-difficulty-${mode}`) as GameDifficulty;
+    const savedLanguage = localStorage.getItem(`tile-takeover-language-${mode}`);
 
     if (savedDifficulty) {
       setDifficulty(savedDifficulty);
@@ -35,11 +36,12 @@ export function GameSetup({ onStart, lastDifficulty, lastLanguage }: GameSetupPr
     } else if (lastLanguage) {
       setLanguage(lastLanguage);
     }
-  }, [lastDifficulty, lastLanguage]);
+  }, [lastDifficulty, lastLanguage, mode]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onStart(difficulty, language, startingPlayer);
+    const startPlayerForMode = mode === 'multiplayer' ? 'player1' : startingPlayer;
+    onStart(difficulty, language, startPlayerForMode);
   };
 
   return (
@@ -70,35 +72,37 @@ export function GameSetup({ onStart, lastDifficulty, lastLanguage }: GameSetupPr
                 </SelectContent>
               </Select>
             </div>
-             <div className="space-y-2">
-              <Label className="text-lg flex items-center gap-2"><UserSquare size={20} /> Quem Começa?</Label>
-              <RadioGroup
-                defaultValue={startingPlayer}
-                onValueChange={(value: Player) => setStartingPlayer(value)}
-                className="grid grid-cols-2 gap-4 pt-2"
-              >
-                <div>
-                  <RadioGroupItem value="player" id="player" className="peer sr-only" />
-                  <Label
-                    htmlFor="player"
-                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                  >
-                    <User className="mb-2 h-6 w-6"/>
-                    Jogador
-                  </Label>
-                </div>
-                <div>
-                  <RadioGroupItem value="ai" id="ai" className="peer sr-only" />
-                  <Label
-                    htmlFor="ai"
-                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                  >
-                    <Bot className="mb-2 h-6 w-6"/>
-                    IA
-                  </Label>
-                </div>
-              </RadioGroup>
-            </div>
+            {mode === 'singleplayer' && (
+              <div className="space-y-2">
+                <Label className="text-lg flex items-center gap-2"><UserSquare size={20} /> Quem Começa?</Label>
+                <RadioGroup
+                  defaultValue={startingPlayer}
+                  onValueChange={(value: Player) => setStartingPlayer(value)}
+                  className="grid grid-cols-2 gap-4 pt-2"
+                >
+                  <div>
+                    <RadioGroupItem value="player" id="player" className="peer sr-only" />
+                    <Label
+                      htmlFor="player"
+                      className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                    >
+                      <User className="mb-2 h-6 w-6"/>
+                      Jogador
+                    </Label>
+                  </div>
+                  <div>
+                    <RadioGroupItem value="ai" id="ai" className="peer sr-only" />
+                    <Label
+                      htmlFor="ai"
+                      className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                    >
+                      <Bot className="mb-2 h-6 w-6"/>
+                      IA
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="language" className="text-lg flex items-center gap-2"><Languages size={20} /> Idioma</Label>
               <Select onValueChange={(value: string) => setLanguage(value)} value={language}>

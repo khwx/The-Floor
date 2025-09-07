@@ -1,4 +1,4 @@
-export type Player = 'player' | 'ai';
+export type Player = 'player' | 'ai' | 'player1' | 'player2';
 
 export type Territory = {
   theme: string;
@@ -25,6 +25,6 @@ export type DuelState = {
   questions: Question[];
   activeQuestionIndex: number;
   playerCorrect: number;
-  aiCorrect: number;
+  aiCorrect: number; // In multiplayer, this could be player2's correct count.
   timeRemaining: number;
 };

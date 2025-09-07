@@ -28,16 +28,29 @@ export function Tile({ tile, isClickable, onClick }: TileProps) {
 
   const ownerClass = {
     player: 'bg-primary/90 ring-primary',
+    player1: 'bg-primary/90 ring-primary',
+    player2: 'bg-accent/90 ring-accent',
     ai: 'bg-destructive/90 ring-destructive',
     unowned: 'bg-card/50 hover:bg-card/80',
   }[tile.owner];
 
   const iconColorClass = {
     player: 'text-primary-foreground',
+    player1: 'text-primary-foreground',
+    player2: 'text-accent-foreground',
     ai: 'text-destructive-foreground',
     unowned: 'text-muted-foreground',
   }[tile.owner];
   
+  const clickableRingClass = {
+    player: 'ring-accent/70 hover:ring-4 animate-pulse',
+    player1: 'ring-accent/70 hover:ring-4 animate-pulse',
+    player2: 'ring-primary/70 hover:ring-4 animate-pulse',
+    ai: '',
+    unowned: '',
+  }[tile.owner];
+
+
   return (
     <button
       onClick={isClickable ? onClick : undefined}
@@ -45,7 +58,7 @@ export function Tile({ tile, isClickable, onClick }: TileProps) {
       className={cn(
         'relative aspect-square w-full rounded-md transition-all duration-300 flex flex-col items-center justify-center p-2 focus:outline-none focus:ring-4 focus:ring-offset-2 focus:ring-offset-background animate-tile-spawn',
         ownerClass,
-        isClickable ? 'cursor-pointer ring-accent/70 hover:ring-4 animate-pulse' : 'cursor-not-allowed',
+        isClickable ? clickableRingClass : 'cursor-not-allowed',
         tile.owner !== 'unowned' && 'ring-2 ring-offset-1 ring-offset-background',
         isConquered && 'animate-tile-conquer'
       )}
@@ -55,7 +68,7 @@ export function Tile({ tile, isClickable, onClick }: TileProps) {
       <span className={cn('text-xs font-medium text-center truncate w-full mt-1 capitalize', iconColorClass)}>
         {tile.theme}
       </span>
-      {!isClickable && tile.owner !== 'player' && (
+      {!isClickable && tile.owner !== 'player' && tile.owner !== 'player1' && tile.owner !== 'player2' && (
         <div className="absolute inset-0 bg-black/40 rounded-md flex items-center justify-center">
             <Lock className="h-6 w-6 text-white/50" />
         </div>
@@ -63,5 +76,3 @@ export function Tile({ tile, isClickable, onClick }: TileProps) {
     </button>
   );
 }
-
-    
