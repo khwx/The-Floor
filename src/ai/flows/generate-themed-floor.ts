@@ -12,7 +12,7 @@ import {ai, model} from '@/ai/genkit';
 import {z} from 'genkit';
 import { allCategories } from '@/lib/categories';
 
-const difficulties = ['easy', 'medium', 'hard'] as const;
+const difficulties = ['easy', 'medium', 'hard', 'epic'] as const;
 
 const GenerateThemedFloorInputSchema = z.object({
   difficulty: z
@@ -58,6 +58,7 @@ The number of territories depends on the difficulty:
 - easy: Generate 4 territories.
 - medium: Generate 9 territories.
 - hard: Generate 16 territories.
+- epic: Generate 25 territories.
 
 The themes you select should be thematically diverse and appropriate for a trivia game. Ensure the generated themes are in the specified language ({{{language}}}).
 

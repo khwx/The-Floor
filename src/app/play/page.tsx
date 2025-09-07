@@ -55,7 +55,7 @@ export default function PlayPage() {
   const { toast } = useToast();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleGameStart = async (difficulty: GameDifficulty, lang: string) => {
+  const handleGameStart = async (difficulty: GameDifficulty, lang: string, startingPlayer: Player) => {
     setGameState('loading_board');
     setLanguage(lang);
     const result = await generateFloor(difficulty, lang);
@@ -85,8 +85,8 @@ export default function PlayPage() {
     setGridSize({ rows, cols });
     setBoard(initialBoard);
     setScores({ player: 1, ai: 1 });
-    setTurn('player');
-    setGameState('playing');
+    setTurn(startingPlayer);
+    setGameState(startingPlayer === 'ai' ? 'ai_turn' : 'playing');
   };
 
   const checkEndGame = useCallback((newBoard: TileData[]) => {
@@ -110,22 +110,20 @@ export default function PlayPage() {
       const winnerOfTurn = currentTurnPlayer;
       const loserOfTurn = winnerOfTurn === 'player' ? 'ai' : 'player';
 
-      // Unowned tile conquest
-      if (tileConquered.owner === 'unowned') {
+      // Unowned tile conquest or Duel conquest
+      const isDuel = tileConquered.owner === loserOfTurn;
+      if (isDuel) {
+          const conqueredTheme = tileConquered.theme;
+          newBoard = newBoard.map(t => {
+            if (t.owner === loserOfTurn && t.theme === conqueredTheme) {
+              return { ...t, owner: winnerOfTurn };
+            }
+            return t;
+          });
+      } else if (tileConquered.owner === 'unowned') {
           newBoard = newBoard.map(t =>
             t.id === tileConquered.id ? { ...t, owner: winnerOfTurn } : t
           );
-      }
-      
-      // Duel conquest
-      else if (tileConquered.owner === loserOfTurn) {
-        const conqueredTheme = tileConquered.theme;
-        newBoard = newBoard.map(t => {
-          if (t.owner === loserOfTurn && t.theme === conqueredTheme) {
-            return { ...t, owner: winnerOfTurn };
-          }
-          return t;
-        });
       }
     }
 
@@ -147,9 +145,16 @@ export default function PlayPage() {
       return;
     }
     
-    const nextTurn = currentTurnPlayer === 'player' ? 'ai' : 'player';
-    setTurn(nextTurn);
-    setGameState(nextTurn === 'ai' ? 'ai_turn' : 'playing');
+    // "Winner Stays On" logic
+    if (wasTurnSuccessful) {
+      // If the current player was successful, they get to go again.
+      setGameState(currentTurnPlayer === 'ai' ? 'ai_turn' : 'playing');
+    } else {
+      // If they failed, switch turns.
+      const nextTurn = currentTurnPlayer === 'player' ? 'ai' : 'player';
+      setTurn(nextTurn);
+      setGameState(nextTurn === 'ai' ? 'ai_turn' : 'playing');
+    }
   }, [board, checkEndGame]);
 
   const endDuel = useCallback((finalDuelState: DuelState, duelTile: TileData) => {

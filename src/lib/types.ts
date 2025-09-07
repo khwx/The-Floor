@@ -10,7 +10,7 @@ export type TileData = {
   owner: Player | 'unowned';
 };
 
-export type GameDifficulty = 'easy' | 'medium' | 'hard';
+export type GameDifficulty = 'easy' | 'medium' | 'hard' | 'epic';
 
 export type Question = {
   question: string;

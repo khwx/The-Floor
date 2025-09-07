@@ -5,20 +5,22 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import type { GameDifficulty } from '@/lib/types';
-import { Languages, SlidersHorizontal } from 'lucide-react';
+import type { GameDifficulty, Player } from '@/lib/types';
+import { Languages, SlidersHorizontal, UserSquare } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 
 type GameSetupProps = {
-  onStart: (difficulty: GameDifficulty, language: string) => void;
+  onStart: (difficulty: GameDifficulty, language: string, startingPlayer: Player) => void;
 };
 
 export function GameSetup({ onStart }: GameSetupProps) {
   const [difficulty, setDifficulty] = useState<GameDifficulty>('easy');
   const [language, setLanguage] = useState<string>('Portuguese');
+  const [startingPlayer, setStartingPlayer] = useState<Player>('player');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onStart(difficulty, language);
+    onStart(difficulty, language, startingPlayer);
   };
 
   return (
@@ -42,12 +44,39 @@ export function GameSetup({ onStart }: GameSetupProps) {
                   <SelectValue placeholder="Selecione a dificuldade" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="easy" className="text-lg">Fácil</SelectItem>
-                  <SelectItem value="medium" className="text-lg">Médio</SelectItem>
-                  <SelectItem value="hard" className="text-lg">Difícil</SelectItem>
+                  <SelectItem value="easy" className="text-lg">Fácil (2x2)</SelectItem>
+                  <SelectItem value="medium" className="text-lg">Médio (3x3)</SelectItem>
+                  <SelectItem value="hard" className="text-lg">Difícil (4x4)</SelectItem>
+                  <SelectItem value="epic" className="text-lg">Épico (5x5)</SelectItem>
                 </SelectContent>
               </Select>
-               <p className="text-sm text-muted-foreground pt-1">A dificuldade determina o número e os tipos de categorias no tabuleiro.</p>
+            </div>
+             <div className="space-y-2">
+              <Label className="text-lg flex items-center gap-2"><UserSquare size={20} /> Quem Começa?</Label>
+              <RadioGroup
+                defaultValue={startingPlayer}
+                onValueChange={(value: Player) => setStartingPlayer(value)}
+                className="grid grid-cols-2 gap-4 pt-2"
+              >
+                <div>
+                  <RadioGroupItem value="player" id="player" className="peer sr-only" />
+                  <Label
+                    htmlFor="player"
+                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                  >
+                    Jogador
+                  </Label>
+                </div>
+                <div>
+                  <RadioGroupItem value="ai" id="ai" className="peer sr-only" />
+                  <Label
+                    htmlFor="ai"
+                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                  >
+                    IA
+                  </Label>
+                </div>
+              </RadioGroup>
             </div>
             <div className="space-y-2">
               <Label htmlFor="language" className="text-lg flex items-center gap-2"><Languages size={20} /> Idioma</Label>
@@ -63,7 +92,6 @@ export function GameSetup({ onStart }: GameSetupProps) {
                   <SelectItem value="German" className="text-lg">Deutsch</SelectItem>
                 </SelectContent>
               </Select>
-               <p className="text-sm text-muted-foreground pt-1">O conteúdo do jogo será gerado no idioma selecionado.</p>
             </div>
             <Button type="submit" className="w-full" size="lg">
               Começar Jogo
