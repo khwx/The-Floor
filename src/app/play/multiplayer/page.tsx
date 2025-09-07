@@ -1,8 +1,15 @@
 'use client';
 
 import { GameLobby } from "@/components/game-lobby";
+import { useState, useEffect } from "react";
 
 export default function MultiplayerLobbyPage() {
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
     return (
         <main className="flex min-h-screen flex-col items-center justify-center p-8 bg-gradient-to-br from-background to-secondary">
             <div className="text-center mb-12">
@@ -15,7 +22,7 @@ export default function MultiplayerLobbyPage() {
             </div>
 
             <div className="w-full max-w-md mx-auto">
-                <GameLobby />
+                {isClient && <GameLobby />}
             </div>
         </main>
     );
