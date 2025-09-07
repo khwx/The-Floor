@@ -111,8 +111,11 @@ export default function PlayPage() {
     setActiveTile(tile);
     setGameState('ai_thinking'); // Show loader while fetching question(s)
     
-    const territoryCount = isDuel ? board.filter(t => t.owner === 'ai' && t.theme === questionTheme).length : 1;
-    const questionCount = isDuel ? Math.max(MIN_DUEL_QUESTIONS, territoryCount) : 1;
+    let questionCount = 1;
+    if (isDuel) {
+      const territoryCount = board.filter(t => t.owner === 'ai' && t.theme === questionTheme).length;
+      questionCount = Math.max(MIN_DUEL_QUESTIONS, territoryCount);
+    }
     
     toast({
         title: 'A preparar o seu desafio...',
@@ -140,7 +143,6 @@ export default function PlayPage() {
             title: `Duelo Iniciado!`,
             description: `Tema: "${questionTheme}". Você tem ${totalDuelTime} segundos para responder a ${questionCount} pergunta(s).`,
         });
-        setGameState('duel');
         
         setDuel({
             challenger: 'player',
@@ -150,7 +152,8 @@ export default function PlayPage() {
             aiCorrect: 0,
             timeRemaining: totalDuelTime,
         });
-
+        
+        setGameState('duel');
     } else { // Unowned tile
         setGameState('question');
     }
@@ -167,32 +170,39 @@ export default function PlayPage() {
 
     // Logic for Dueling
     if (gameState === 'duel' && duel) {
-      if (timerRef.current) clearInterval(timerRef.current);
-
       const newPlayerCorrect = duel.playerCorrect + (correct ? 1 : 0);
+      // Simulate AI response for the same question
       const aiResponseCorrect = Math.random() > 0.35; // AI has a 65% chance of being correct
       const newAiCorrect = duel.aiCorrect + (aiResponseCorrect ? 1 : 0);
 
       const nextQuestionIndex = duel.activeQuestionIndex + 1;
       
-      // If there are more questions, show the next one.
-      if (nextQuestionIndex < duel.questions.length) {
-        setActiveQuestion(duel.questions[nextQuestionIndex]);
-        setDuel({ 
-          ...duel, 
+      const updatedDuelState = {
+          ...duel,
           activeQuestionIndex: nextQuestionIndex,
           playerCorrect: newPlayerCorrect,
           aiCorrect: newAiCorrect,
-        });
-        startDuelTimer(); // Restart timer for next question
+      };
+      setDuel(updatedDuelState);
+
+      // If there are more questions, show the next one.
+      if (nextQuestionIndex < duel.questions.length) {
+        setActiveQuestion(duel.questions[nextQuestionIndex]);
       } else {
         // This was the last question. End the duel and determine the winner.
-        const playerFinalScore = newPlayerCorrect;
-        const aiFinalScore = newAiCorrect;
+        if (timerRef.current) clearInterval(timerRef.current);
         
-        // Challenger wins on more correct answers. Defender (AI) wins on a draw.
-        const wasTurnSuccessful = playerFinalScore > aiFinalScore;
-        endTurn(wasTurnSuccessful);
+        let wasTurnSuccessful: boolean;
+        if (duel.challenger === 'player') {
+          wasTurnSuccessful = newPlayerCorrect > newAiCorrect;
+        } else { // AI is challenger
+          wasTurnSuccessful = newAiCorrect > newPlayerCorrect;
+        }
+        
+        // Use a timeout to let the user see the result of the last question
+        setTimeout(() => {
+          endTurn(wasTurnSuccessful);
+        }, 1500); 
       }
     }
   };
@@ -250,13 +260,13 @@ export default function PlayPage() {
 
 
   const handleModalClose = () => {
-    // Closing the modal during a question or duel is a loss for that turn.
+    // Closing the modal during a question is a loss for that turn.
     if (gameState === 'question') {
       endTurn(false);
     }
+    // Closing the modal during a duel is a loss for the challenger.
     if (gameState === 'duel' && duel) {
-      // In a duel, prematurely closing means the challenger loses.
-      const challengerWon = duel.challenger === 'ai'; // If AI challenged, it wins. If player challenged, they lose.
+      const challengerWon = false; // Challenger always loses on close
       endTurn(challengerWon);
     }
   };
@@ -284,45 +294,50 @@ export default function PlayPage() {
       return neighbors;
   }, []);
   
-  const startDuelTimer = () => {
-    // The timer is now for the entire duel, not per question.
-    // It should only be set once at the start of the duel.
-    if (timerRef.current) clearInterval(timerRef.current); // Clear previous timers
+  const startDuelTimer = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
     
     timerRef.current = setInterval(() => {
         setDuel(prevDuel => {
-          if (prevDuel && prevDuel.timeRemaining > 1) {
+          if (!prevDuel) {
+             if (timerRef.current) clearInterval(timerRef.current);
+             return null;
+          }
+
+          if (prevDuel.timeRemaining > 1) {
             return { ...prevDuel, timeRemaining: prevDuel.timeRemaining - 1 };
           }
-          if (timerRef.current) clearInterval(timerRef.current);
           
-          // Time's up! Challenger loses.
-          if(prevDuel){
-            const wasTurnSuccessful = prevDuel.challenger === 'ai'; // AI wins if it was the challenger
-            endTurn(wasTurnSuccessful);
-          }
-          return null; // End of duel
+          // Time's up!
+          if (timerRef.current) clearInterval(timerRef.current);
+          toast({
+            title: "O tempo acabou!",
+            description: "O desafiante perdeu o duelo.",
+            variant: "destructive",
+          });
+
+          const challengerWon = false;
+          setTimeout(() => endTurn(challengerWon), 1500);
+          
+          return { ...prevDuel, timeRemaining: 0 };
         });
       }, 1000);
-  }
+  }, [toast]);
 
-  // Duel Timer Logic
+
+  // Effect to start duel timer
   useEffect(() => {
     if (gameState === 'duel' && duel && duel.activeQuestionIndex === 0) {
       startDuelTimer();
     }
+    
     // Cleanup timer if the game state changes away from a duel
-    if (gameState !== 'duel' && timerRef.current) {
-        clearInterval(timerRef.current);
-    }
-
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameState]); // Only depends on gameState now
+  }, [gameState, duel, startDuelTimer]);
 
 
   useEffect(() => {
@@ -376,7 +391,6 @@ export default function PlayPage() {
           
           setActiveTile(targetTile);
           setActiveQuestion(questionResult[0]);
-          setGameState('duel');
           const totalDuelTime = DUEL_TIME_PER_QUESTION * questionResult.length;
           setDuel({
               challenger: 'ai',
@@ -386,6 +400,7 @@ export default function PlayPage() {
               aiCorrect: 0,
               timeRemaining: totalDuelTime,
           });
+          setGameState('duel');
 
         } else {
           // AI captures an unowned tile
