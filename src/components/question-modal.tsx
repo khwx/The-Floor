@@ -31,15 +31,16 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel 
   const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
+    // Reset state when modal opens or closes
     if (!isOpen) {
-      // Reset state when modal closes
       setTimeout(() => {
         setSelectedOption(null);
         setIsAnswered(false);
         setImageError(false);
-      }, 300);
+      }, 300); // Delay to allow for closing animation
     } else {
-        setImageError(false);
+      // When opening, always reset image error state
+      setImageError(false);
     }
   }, [isOpen]);
 
