@@ -8,7 +8,7 @@
  * - GenerateThemedFloorOutput - The return type for the generateThemedFloor function.
  */
 
-import {ai} from '@/ai/genkit';
+import {ai, model} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const difficulties = ['easy', 'medium', 'hard'] as const;
@@ -81,7 +81,7 @@ const generateThemedFloorFlow = ai.defineFlow(
     outputSchema: GenerateThemedFloorOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+    const {output} = await prompt({input, model});
     return output!;
   }
 );

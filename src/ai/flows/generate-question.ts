@@ -8,7 +8,7 @@
  * - GenerateQuestionOutput - The return type for the generateQuestion function.
  */
 
-import {ai} from '@/ai/genkit';
+import {ai, model} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const GenerateQuestionInputSchema = z.object({
@@ -50,7 +50,7 @@ const generateQuestionFlow = ai.defineFlow(
     outputSchema: GenerateQuestionOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+    const {output} = await prompt({input, model});
     return output!;
   }
 );
