@@ -56,27 +56,31 @@ export async function generateQuestion(
 export async function getImageForQuery(query: string): Promise<{ url: string } | { error: string }> {
   const accessKey = process.env.PIXABAY_API_KEY;
   if (!accessKey) {
-    return { error: 'Pixabay API key is not configured.' };
+    // This is not a user-facing error, so we don't need a user-friendly message.
+    // This case will be handled by the caller.
+    return { error: 'Pixabay API key is not configured on the server.' };
   }
 
   try {
-    const response = await fetch(`https://pixabay.com/api/?key=${accessKey}&q=${encodeURIComponent(query)}&image_type=photo&orientation=horizontal&per_page=3`);
+    // Fetch a few images to have some variety
+    const response = await fetch(`https://pixabay.com/api/?key=${accessKey}&q=${encodeURIComponent(query)}&image_type=photo&orientation=horizontal&per_page=5`);
 
     if (!response.ok) {
+      // Attempt to parse the error from Pixabay, but fallback to status text.
       const errorData = await response.text();
       return { error: `Pixabay API error: ${errorData || response.statusText}` };
     }
 
     const data = await response.json();
     if (data.hits && data.hits.length > 0) {
-      // Pick a random image from the results
+      // Pick a random image from the results to avoid showing the same one every time
       const randomHit = data.hits[Math.floor(Math.random() * data.hits.length)];
       return { url: randomHit.webformatURL };
     } else {
-      // Fallback search with just the first word if no results
+      // If no results, try a broader search with just the first word of the query
        const firstWord = query.split(' ')[0];
-       if (firstWord !== query) {
-         return getImageForQuery(firstWord);
+       if (firstWord && firstWord.toLowerCase() !== query.toLowerCase()) {
+         return getImageForQuery(firstWord); // Recursive call with a simpler query
        }
       return { error: 'No images found for this query on Pixabay.' };
     }

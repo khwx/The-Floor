@@ -21,9 +21,7 @@ export type Question = {
 };
 
 export type DuelState = {
-  challenger: Player;
-  defender: Player;
-  timeRemaining: number;
   questions: Question[];
   activeQuestionIndex: number;
+  timeRemaining: number;
 };
