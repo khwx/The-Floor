@@ -95,13 +95,15 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, defen
         ) : (
           <div>
             {question.imageUrl && (
-                <div className="relative aspect-[4/3] w-full mb-4 rounded-md overflow-hidden bg-muted">
+                <div className="relative aspect-video w-full mb-4 rounded-md overflow-hidden bg-muted">
                     <Image 
                         src={question.imageUrl}
                         alt={question.imageQuery}
-                        fill
+                        width={400}
+                        height={300}
                         className="object-cover"
                         data-ai-hint={question.imageQuery}
+                        unoptimized
                     />
                 </div>
             )}

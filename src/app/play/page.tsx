@@ -128,8 +128,8 @@ export default function PlayPage() {
         setDefendingTile(null);
         return;
     }
-
-    const imageUrl = `https://picsum.photos/seed/${encodeURIComponent(questionResult.imageQuery)}/400/300`;
+    
+    const imageUrl = `https://images.unsplash.com/search/photos?query=${encodeURIComponent(questionResult.imageQuery)}`;
     
     setActiveQuestion({...questionResult, imageUrl});
     setGameState('question');
@@ -139,23 +139,27 @@ export default function PlayPage() {
     if (!activeTile) return;
 
     const winnerOfDuel = correct ? turn : (turn === 'player' ? 'ai' : 'player');
+    const loserOfDuel = winnerOfDuel === 'player' ? 'ai' : 'player';
     
-    let newBoard: TileData[];
+    let newBoard = [...board];
+    let conqueredCount = 0;
 
     if (activeTile.owner === 'unowned') {
-      newBoard = board.map(t =>
-        t.id === activeTile.id ? { ...t, owner: winnerOfDuel } : t
-      );
-    } else {
-      // Duel logic: winner takes all territories from the loser
-      const loserOfDuel = winnerOfDuel === 'player' ? 'ai' : 'player';
-      newBoard = board.map(t =>
-        t.owner === loserOfDuel ? { ...t, owner: winnerOfDuel } : t
-      );
-       // The challenged tile also goes to the winner
-      newBoard = newBoard.map(t =>
-        t.id === activeTile.id ? { ...t, owner: winnerOfDuel } : t
-      );
+        if (winnerOfDuel === turn) { // Only the challenger can capture a neutral tile
+            newBoard = board.map(t =>
+              t.id === activeTile.id ? { ...t, owner: winnerOfDuel } : t
+            );
+            conqueredCount = 1;
+        }
+    } else { // It's a duel
+      const themeToConquer = activeTile.theme;
+      newBoard = board.map(t => {
+        if (t.id === activeTile.id || (t.owner === loserOfDuel && t.theme === themeToConquer)) {
+          conqueredCount++;
+          return { ...t, owner: winnerOfDuel };
+        }
+        return t;
+      });
     }
 
     setBoard(newBoard);
@@ -247,9 +251,9 @@ export default function PlayPage() {
           let toastDescription;
 
           if(bestMove.owner === 'player') {
-            toastDescription = `A IA desafia o seu território. A pergunta será sobre o tema: "${questionTheme}".`;
+            toastDescription = `A IA desafia o seu território de "${bestMove.theme}". A pergunta será sobre este tema.`;
           } else {
-            toastDescription = `A IA desafia o território neutro "${bestMove.theme}".`;
+            toastDescription = `A IA vai tentar conquistar o território neutro de "${bestMove.theme}".`;
           }
           
           toast({
@@ -261,27 +265,51 @@ export default function PlayPage() {
 
           setTimeout(() => {
             const winnerOfDuel = isCorrect ? 'ai' : 'player';
+            const loserOfDuel = winnerOfDuel === 'player' ? 'ai' : 'player';
+            
+            let resultToastTitle: string;
+            let resultToastDescription: string;
+            
+            if (isCorrect) {
+                resultToastTitle = `A IA respondeu corretamente!`;
+            } else {
+                resultToastTitle = `A IA respondeu incorretamente!`;
+            }
+
+            let newBoard = [...board];
+            let conqueredCount = 0;
+
+            if (bestMove.owner === 'unowned') {
+                if (isCorrect) { // AI wins
+                    newBoard = board.map(t =>
+                        t.id === bestMove.id ? { ...t, owner: 'ai' } : t
+                    );
+                    conqueredCount = 1;
+                    resultToastDescription = `A IA conquistou o território "${bestMove.theme}".`;
+                } else { // Player "wins" by the AI failing, but nothing changes
+                    resultToastDescription = `O território "${bestMove.theme}" permanece neutro.`;
+                }
+            } else { // It was a duel against the player
+              const themeToConquer = bestMove.theme;
+              newBoard = board.map(t => {
+                if (t.id === bestMove.id || (t.owner === loserOfDuel && t.theme === themeToConquer)) {
+                  conqueredCount++;
+                  return { ...t, owner: winnerOfDuel };
+                }
+                return t;
+              });
+
+              if (winnerOfDuel === 'ai') {
+                  resultToastDescription = `A IA conquistou o seu território de "${themeToConquer}" e ${conqueredCount - 1} outras casas do mesmo tema.`;
+              } else {
+                  resultToastDescription = `Você defendeu-se com sucesso! A IA perdeu o seu território de "${themeToConquer}".`;
+              }
+            }
             
             toast({
-                title: `A IA respondeu... ${isCorrect ? 'corretamente!' : 'incorretamente!'}`,
-                description: `O duelo pelo território de "${bestMove.theme}" terminou.`,
+                title: resultToastTitle,
+                description: resultToastDescription,
             });
-            
-            let newBoard: TileData[];
-    
-            if (bestMove.owner === 'unowned') {
-              newBoard = board.map(t =>
-                t.id === bestMove.id ? { ...t, owner: winnerOfDuel } : t
-              );
-            } else {
-              const loserOfDuel = winnerOfDuel === 'player' ? 'ai' : 'player';
-              newBoard = board.map(t =>
-                t.owner === loserOfDuel ? { ...t, owner: winnerOfDuel } : t
-              );
-               newBoard = newBoard.map(t =>
-                t.id === bestMove.id ? { ...t, owner: winnerOfDuel } : t
-              );
-            }
             
             setBoard(newBoard);
             const newScores = {
