@@ -49,28 +49,24 @@ export async function generateQuestion(
 }
 
 export async function getImageForQuery(query: string): Promise<{ url: string } | { error: string }> {
-  const accessKey = process.env.UNSPLASH_ACCESS_KEY;
+  const accessKey = process.env.PIXABAY_API_KEY;
   if (!accessKey) {
-    return { error: 'Unsplash API key is not configured.' };
+    return { error: 'Pixabay API key is not configured.' };
   }
 
   try {
-    const response = await fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`, {
-      headers: {
-        Authorization: `Client-ID ${accessKey}`,
-      },
-    });
+    const response = await fetch(`https://pixabay.com/api/?key=${accessKey}&q=${encodeURIComponent(query)}&image_type=photo&orientation=horizontal&per_page=3`);
 
     if (!response.ok) {
-      const errorData = await response.json();
-      return { error: `Unsplash API error: ${errorData.errors?.join(', ') || response.statusText}` };
+      const errorData = await response.text();
+      return { error: `Pixabay API error: ${errorData || response.statusText}` };
     }
 
     const data = await response.json();
-    if (data.results && data.results.length > 0) {
-      return { url: data.results[0].urls.regular };
+    if (data.hits && data.hits.length > 0) {
+      return { url: data.hits[0].webformatURL };
     } else {
-      return { error: 'No images found for this query.' };
+      return { error: 'No images found for this query on Pixabay.' };
     }
   } catch (e) {
      if (e instanceof Error) {
