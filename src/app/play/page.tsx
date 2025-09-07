@@ -159,7 +159,7 @@ export default function PlayPage() {
     }
   };
   
-  const endDuel = (finalDuelState: DuelState) => {
+  const endDuel = useCallback((finalDuelState: DuelState) => {
     let wasTurnSuccessful: boolean;
     if (finalDuelState.challenger === 'player') {
       // Challenger must have MORE correct answers to win. Tie goes to the defender.
@@ -171,16 +171,16 @@ export default function PlayPage() {
     toast({
       title: 'Duelo Terminado!',
       description: wasTurnSuccessful
-        ? `O desafiante (${finalDuelState.challenger}) venceu!`
-        : `O defensor (${finalDuelState.challenger === 'player' ? 'ai' : 'player'}) venceu!`,
+        ? `O desafiante (${finalDuelState.challenger}) venceu o duelo!`
+        : `O defensor (${finalDuelState.challenger === 'player' ? 'ai' : 'player'}) venceu o duelo!`,
       variant: wasTurnSuccessful ? 'default' : 'destructive',
     });
 
     // Use a timeout to let the user see the result of the last question
     setTimeout(() => {
-      endTurn(wasTurnSuccessful);
+      endTurn(wasTurnSuccessful, finalDuelState.challenger);
     }, 1500);
-  };
+  }, [toast]); // Simplified dependencies for now
   
   const handleAnswer = (correct: boolean) => {
     if (!activeTile) return;
@@ -188,7 +188,7 @@ export default function PlayPage() {
     // Logic for standard question (unowned tile)
     if (gameState === 'question') {
       // Delay to allow user to see feedback in modal
-      setTimeout(() => endTurn(correct), 1500);
+      setTimeout(() => endTurn(correct, 'player'), 1500);
       return;
     }
 
@@ -226,14 +226,11 @@ export default function PlayPage() {
     }
   };
   
-  const endTurn = (wasTurnSuccessful: boolean) => {
-    if (!activeTile) return;
-    
-    const winnerOfTurn = wasTurnSuccessful ? turn : (turn === 'player' ? 'ai' : 'player');
-    
+  const endTurn = (wasTurnSuccessful: boolean, currentTurnPlayer: Player) => {
     let newBoard = [...board];
     
-    if (wasTurnSuccessful) {
+    if (wasTurnSuccessful && activeTile) {
+      const winnerOfTurn = currentTurnPlayer;
       // Unowned tile conquest
       if (activeTile.owner === 'unowned') {
           newBoard = board.map(t =>
@@ -243,7 +240,7 @@ export default function PlayPage() {
       
       // Duel conquest
       if (activeTile.owner !== 'unowned' && activeTile.owner !== winnerOfTurn) {
-        const loserOfDuel = turn === 'player' ? 'ai' : 'player';
+        const loserOfDuel = winnerOfTurn === 'player' ? 'ai' : 'player';
         const conqueredTheme = activeTile.theme;
         
         newBoard = board.map(t => {
@@ -256,12 +253,12 @@ export default function PlayPage() {
       }
     }
 
-    setBoard(newBoard);
     const newScores = {
       player: newBoard.filter(t => t.owner === 'player').length,
       ai: newBoard.filter(t => t.owner === 'ai').length,
     };
     setScores(newScores);
+    setBoard(newBoard);
     
     // Clean up state
     setActiveTile(null);
@@ -273,7 +270,7 @@ export default function PlayPage() {
       return;
     }
     
-    const nextTurn = turn === 'player' ? 'ai' : 'player';
+    const nextTurn = currentTurnPlayer === 'player' ? 'ai' : 'player';
     setTurn(nextTurn);
     setGameState(nextTurn === 'ai' ? 'ai_thinking' : 'playing');
   };
@@ -282,13 +279,13 @@ export default function PlayPage() {
   const handleModalClose = () => {
     // Closing the modal during a question is a loss for that turn.
     if (gameState === 'question') {
-      endTurn(false);
+      endTurn(false, 'player');
     }
     // Closing the modal during a duel is a loss for the challenger.
     if (gameState === 'duel' && duel) {
       // Challenger loses if they close the modal.
       const wasTurnSuccessful = duel.challenger !== 'player';
-      endTurn(wasTurnSuccessful);
+      endTurn(wasTurnSuccessful, duel.challenger);
     }
   };
 
@@ -337,15 +334,14 @@ export default function PlayPage() {
             variant: "destructive",
           });
           
-          // Use a new DuelState object for the final calculation
-          const finalDuelState: DuelState = {...prevDuel, timeRemaining: 0};
+          const wasTurnSuccessful = prevDuel.challenger !== 'player';
           
-          setTimeout(() => endDuel(finalDuelState), 1500);
+          setTimeout(() => endTurn(wasTurnSuccessful, prevDuel.challenger), 1500);
           
           return { ...prevDuel, timeRemaining: 0 };
         });
       }, 1000);
-  }, [toast]);
+  }, [toast, endTurn]); // endTurn added to dependency array
 
 
   // Effect to start duel timer
@@ -412,9 +408,7 @@ export default function PlayPage() {
 
           if ('error' in questionResult) {
               toast({ title: 'Falha ao obter perguntas para o duelo.', variant: 'destructive' });
-              setTurn('player');
-              setGameState('playing');
-              setActiveTile(null);
+              endTurn(false, 'ai');
               return;
           }
           
@@ -449,7 +443,7 @@ export default function PlayPage() {
                   description: `A IA acertou ${simulatedDuel.aiCorrect} e você ${simulatedDuel.playerCorrect}. A IA ${aiWon ? 'venceu' : 'perdeu'}!`,
                   variant: aiWon ? 'destructive' : 'default'
               });
-              endTurn(aiWon);
+              endTurn(aiWon, 'ai');
           }, 2000);
 
 
@@ -467,7 +461,7 @@ export default function PlayPage() {
                 title: `A IA respondeu ${isCorrect ? 'corretamente' : 'incorretamente'}!`,
                 variant: isCorrect ? 'default' : 'destructive'
             });
-            endTurn(isCorrect);
+            endTurn(isCorrect, 'ai');
           }, 2000);
         }
 
@@ -475,7 +469,7 @@ export default function PlayPage() {
 
       return () => clearTimeout(aiTurn);
     }
-  }, [gameState, turn, board, gridSize, checkEndGame, toast, language, getNeighbors]);
+  }, [gameState, turn, board, gridSize, checkEndGame, toast, language, getNeighbors, endTurn]);
 
   if (gameState === 'setup') {
     return <GameSetup onStart={handleGameStart} />;
@@ -533,5 +527,3 @@ export default function PlayPage() {
     </div>
   );
 }
-
-    
