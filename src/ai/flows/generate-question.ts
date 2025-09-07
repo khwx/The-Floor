@@ -21,6 +21,7 @@ const GenerateQuestionOutputSchema = z.object({
   question: z.string().describe('The trivia question.'),
   options: z.array(z.string()).describe('An array of 4 multiple-choice options.'),
   answer: z.string().describe('The correct answer from the options.'),
+  imageQuery: z.string().describe('A one or two-word search query for a relevant image for the question. For example, "Eiffel Tower" or "Albert Einstein".'),
 });
 export type GenerateQuestionOutput = z.infer<typeof GenerateQuestionOutputSchema>;
 
@@ -41,7 +42,8 @@ Theme: {{{theme}}}
 
 Generate a challenging but fair multiple-choice question about the given theme in the specified language.
 Provide 4 distinct options, with one of them being the correct answer.
-Ensure the question, options, and answer are all populated in the output.
+Also provide a one or two-word search query for a relevant background image for the question.
+Ensure the question, options, answer, and imageQuery are all populated in the output.
 `,
 });
 
