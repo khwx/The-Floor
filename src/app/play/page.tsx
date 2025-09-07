@@ -155,50 +155,60 @@ export default function PlayPage() {
     if (!activeTile) return;
 
     if (gameState === 'duel' && duel) {
-        if(timerRef.current) clearInterval(timerRef.current);
+      if (timerRef.current) clearInterval(timerRef.current);
 
-        if (correct) {
-            const nextQuestionIndex = duel.activeQuestionIndex + 1;
-            // If there are more questions, show the next one.
-            if (nextQuestionIndex < duel.questions.length) {
-                setActiveQuestion(duel.questions[nextQuestionIndex]);
-                setDuel({ ...duel, activeQuestionIndex: nextQuestionIndex });
-                // Restart timer for the next question? For now, we keep a global duel timer.
-                // Let's re-engage the main timer.
-                startDuelTimer();
-                return; // Stay in the duel, don't proceed to board update yet.
-            }
-            // If it was the last question and it was correct, the player wins the duel.
-            // The normal flow will handle the win.
-        } else {
-            // Incorrect answer ends the duel immediately. Player loses.
-            // The normal flow will handle the loss.
+      if (correct) {
+        const nextQuestionIndex = duel.activeQuestionIndex + 1;
+        // If there are more questions, show the next one.
+        if (nextQuestionIndex < duel.questions.length) {
+          setActiveQuestion(duel.questions[nextQuestionIndex]);
+          setDuel({ ...duel, activeQuestionIndex: nextQuestionIndex });
+          // Restart timer for the next question? For now, we keep a global duel timer.
+          // Let's re-engage the main timer.
+          startDuelTimer();
+          return; // Stay in the duel, don't proceed to board update yet.
         }
+        // If it was the last question and it was correct, the player wins the duel.
+        // The normal flow will handle the win.
+      } else {
+        // Incorrect answer or timeout ends the duel immediately. Player loses.
+        // The board state does not change, just the turn.
+        endTurn(false);
+        return;
+      }
     }
     
-    const winnerOfTurn = correct ? turn : (turn === 'player' ? 'ai' : 'player');
+    endTurn(correct);
+  };
+  
+  const endTurn = (wasTurnSuccessful: boolean) => {
+    if (!activeTile) return;
+
+    const winnerOfTurn = wasTurnSuccessful ? turn : (turn === 'player' ? 'ai' : 'player');
     
     let newBoard = [...board];
     
-    // Unowned tile conquest
-    if (activeTile.owner === 'unowned' && winnerOfTurn === turn) {
-        newBoard = board.map(t =>
-          t.id === activeTile.id ? { ...t, owner: winnerOfTurn } : t
-        );
-    }
-    
-    // Duel conquest
-    if (activeTile.owner !== 'unowned' && winnerOfTurn === turn) {
-      const loserOfDuel = turn === 'player' ? 'ai' : 'player';
-      const conqueredTheme = activeTile.theme;
+    if (wasTurnSuccessful) {
+      // Unowned tile conquest
+      if (activeTile.owner === 'unowned') {
+          newBoard = board.map(t =>
+            t.id === activeTile.id ? { ...t, owner: winnerOfTurn } : t
+          );
+      }
       
-      newBoard = board.map(t => {
-        // The winner takes all tiles of the conquered theme from the loser
-        if (t.owner === loserOfDuel && t.theme === conqueredTheme) {
-          return { ...t, owner: winnerOfTurn };
-        }
-        return t;
-      });
+      // Duel conquest
+      if (activeTile.owner !== 'unowned') {
+        const loserOfDuel = turn === 'player' ? 'ai' : 'player';
+        const conqueredTheme = activeTile.theme;
+        
+        newBoard = board.map(t => {
+          // The winner takes all tiles of the conquered theme from the loser
+          if (t.owner === loserOfDuel && t.theme === conqueredTheme) {
+            return { ...t, owner: winnerOfTurn };
+          }
+          return t;
+        });
+      }
     }
 
     setBoard(newBoard);
@@ -280,7 +290,7 @@ export default function PlayPage() {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameState]);
+  }, [gameState, duel?.activeQuestionIndex]); // Relaunch timer for each new question in duel
 
 
   useEffect(() => {

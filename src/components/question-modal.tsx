@@ -31,16 +31,20 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel 
   const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
-    // Reset state when modal opens or closes
+    // Reset state when the question changes, not just when the modal opens/closes
+    setSelectedOption(null);
+    setIsAnswered(false);
+    setImageError(false);
+  }, [question]);
+
+  useEffect(() => {
+    // Reset state completely when modal closes
     if (!isOpen) {
       setTimeout(() => {
         setSelectedOption(null);
         setIsAnswered(false);
         setImageError(false);
       }, 300); // Delay to allow for closing animation
-    } else {
-      // When opening, always reset image error state
-      setImageError(false);
     }
   }, [isOpen]);
 
@@ -81,7 +85,7 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel 
             <div className="flex justify-between items-center">
               <DialogTitle className="flex items-center gap-2 text-2xl">
                 <Swords className="h-6 w-6 text-primary" />
-                <span>Duelo de Temas!</span>
+                <span>Duelo de Temas! ({duel.activeQuestionIndex + 1}/{duel.questions.length})</span>
               </DialogTitle>
               <div className="flex items-center gap-2 text-2xl font-bold text-primary">
                 <Clock className="h-6 w-6" />
