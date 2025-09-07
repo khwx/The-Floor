@@ -106,7 +106,7 @@ export default function PlayPage() {
     if (tile.owner === 'ai') {
         setDefendingTile(tile);
         toast({
-            title: `Desafio aceite!`,
+            title: `Duelo iniciado!`,
             description: `Você desafia a IA. A pergunta será sobre o tema do território dela: "${questionTheme}".`,
         });
     } else {
@@ -240,7 +240,7 @@ export default function PlayPage() {
           let toastDescription;
 
           if(bestMove.owner === 'player') {
-            toastDescription = `A IA desafia o seu território "${bestMove.theme}". A pergunta será sobre o seu tema: "${questionTheme}".`;
+            toastDescription = `A IA desafia o seu território. A pergunta será sobre o tema: "${questionTheme}".`;
           } else {
             toastDescription = `A IA desafia o território neutro "${bestMove.theme}".`;
           }
