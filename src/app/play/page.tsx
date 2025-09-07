@@ -226,7 +226,7 @@ export default function PlayPage() {
     }
   };
   
-  const endTurn = (wasTurnSuccessful: boolean, currentTurnPlayer: Player) => {
+  const endTurn = useCallback((wasTurnSuccessful: boolean, currentTurnPlayer: Player) => {
     let newBoard = [...board];
     
     if (wasTurnSuccessful && activeTile) {
@@ -273,7 +273,7 @@ export default function PlayPage() {
     const nextTurn = currentTurnPlayer === 'player' ? 'ai' : 'player';
     setTurn(nextTurn);
     setGameState(nextTurn === 'ai' ? 'ai_thinking' : 'playing');
-  };
+  }, [board, activeTile, checkEndGame]);
 
 
   const handleModalClose = () => {
@@ -334,14 +334,16 @@ export default function PlayPage() {
             variant: "destructive",
           });
           
-          const wasTurnSuccessful = prevDuel.challenger !== 'player';
-          
-          setTimeout(() => endTurn(wasTurnSuccessful, prevDuel.challenger), 1500);
-          
+          const challenger = prevDuel.challenger;
+          // Use a functional update for endTurn to get the latest state
+          setTimeout(() => {
+            endTurn(challenger !== 'player', challenger);
+          }, 1500);
+
           return { ...prevDuel, timeRemaining: 0 };
         });
       }, 1000);
-  }, [toast, endTurn]); // endTurn added to dependency array
+  }, [toast, endTurn]);
 
 
   // Effect to start duel timer
@@ -392,7 +394,8 @@ export default function PlayPage() {
         const isDuel = targetTile.owner === 'player';
         const theme = targetTile.theme;
         
-        setActiveTile(targetTile); // Set active tile for AI turn
+        // This is a crucial step that was missing a proper update
+        setActiveTile(targetTile); 
 
         if (isDuel) {
           // AI challenges player to a duel
@@ -469,7 +472,7 @@ export default function PlayPage() {
 
       return () => clearTimeout(aiTurn);
     }
-  }, [gameState, turn, board, gridSize, checkEndGame, toast, language, getNeighbors, endTurn]);
+  }, [gameState, turn, board, gridSize, language, getNeighbors, endTurn, toast]);
 
   if (gameState === 'setup') {
     return <GameSetup onStart={handleGameStart} />;
