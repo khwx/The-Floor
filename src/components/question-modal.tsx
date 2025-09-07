@@ -12,6 +12,7 @@ import type { TileData, Question } from '@/lib/types';
 import { getIconForTheme } from './icons';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Swords } from 'lucide-react';
 
 type QuestionModalProps = {
   isOpen: boolean;
@@ -19,9 +20,10 @@ type QuestionModalProps = {
   question: Question | null;
   onAnswer: (correct: boolean) => void;
   onClose: () => void;
+  defendingTile?: TileData | null;
 };
 
-export function QuestionModal({ isOpen, tile, question, onAnswer, onClose }: QuestionModalProps) {
+export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, defendingTile }: QuestionModalProps) {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
 
@@ -36,9 +38,10 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose }: Que
   }, [isOpen]);
 
   if (!tile) return null;
-
-  const ThemeIcon = getIconForTheme(tile.theme);
-
+  
+  const questionTile = defendingTile || tile;
+  const ThemeIcon = getIconForTheme(questionTile.theme);
+  
   const handleOptionClick = (option: string) => {
     if (isAnswered) return;
     setSelectedOption(option);
@@ -65,12 +68,21 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose }: Que
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-2xl">
-            <ThemeIcon className="h-6 w-6" />
-            <span className="capitalize">{tile.theme}</span>
-          </DialogTitle>
+           {defendingTile ? (
+            <DialogTitle className="flex items-center gap-2 text-2xl">
+              <Swords className="h-6 w-6 text-primary" />
+              <span>Duelo de Temas!</span>
+            </DialogTitle>
+           ) : (
+             <DialogTitle className="flex items-center gap-2 text-2xl">
+                <ThemeIcon className="h-6 w-6" />
+                <span className="capitalize">{tile.theme}</span>
+             </DialogTitle>
+           )}
           <DialogDescription>
-            Responda à pergunta abaixo para conquistar a casa.
+            {defendingTile
+              ? `A pergunta é sobre o seu tema "${defendingTile.theme}" para conquistar a casa "${tile.theme}".`
+              : 'Responda à pergunta abaixo para conquistar a casa.'}
           </DialogDescription>
         </DialogHeader>
         

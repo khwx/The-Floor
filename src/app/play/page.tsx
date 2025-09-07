@@ -46,6 +46,7 @@ export default function PlayPage() {
   const [activeTile, setActiveTile] = useState<TileData | null>(null);
   const [activeQuestion, setActiveQuestion] = useState<Question | null>(null);
   const [winner, setWinner] = useState<Player | 'draw' | null>(null);
+  const [challengingPlayerTile, setChallengingPlayerTile] = useState<TileData | null>(null);
 
   const { toast } = useToast();
 
@@ -101,13 +102,24 @@ export default function PlayPage() {
     if (gameState !== 'playing' || turn !== 'player') return;
 
     let questionTheme = tile.theme;
+    let defendingTile: TileData | null = null;
 
-    // Logic for challenging an opponent's tile
     if (tile.owner === 'ai') {
+        // Player challenges AI. Question is about one of the Player's themes.
+        // Let's find an adjacent player tile to be the "defender"
         const playerTiles = board.filter(t => t.owner === 'player');
-        // For simplicity, we'll use the theme of the first player tile.
-        // A more advanced version could let the player choose which of their themes to defend.
-        questionTheme = playerTiles[0].theme; 
+        const neighborsOfClicked = getNeighbors(tile.id, gridSize.cols, gridSize.rows);
+        const adjacentPlayerTileId = neighborsOfClicked.find(id => playerTiles.some(pt => pt.id === id));
+        
+        if (adjacentPlayerTileId !== undefined) {
+            defendingTile = board[adjacentPlayerTileId];
+        } else {
+            // Fallback: if no adjacent found (should not happen with current rules), use first player tile.
+            defendingTile = playerTiles[0];
+        }
+        
+        questionTheme = defendingTile.theme; 
+        setChallengingPlayerTile(defendingTile);
         toast({
             title: `Desafio aceite!`,
             description: `Você desafia a IA. A pergunta será sobre o seu tema: "${questionTheme}".`,
@@ -115,16 +127,18 @@ export default function PlayPage() {
     }
 
     setActiveTile(tile);
-    setGameState('ai_thinking'); // Use ai_thinking as a loading state
+    setGameState('ai_thinking');
     const questionResult = await generateQuestion(questionTheme, language);
+    
     if ('error' in questionResult) {
         toast({
-        title: 'Falha ao obter pergunta',
-        description: questionResult.error,
-        variant: 'destructive',
+            title: 'Falha ao obter pergunta',
+            description: questionResult.error,
+            variant: 'destructive',
         });
         setGameState('playing');
         setActiveTile(null);
+        setChallengingPlayerTile(null);
         return;
     }
     setActiveQuestion(questionResult);
@@ -135,38 +149,25 @@ export default function PlayPage() {
     if (!activeTile) return;
 
     const winnerOfDuel = correct ? turn : (turn === 'player' ? 'ai' : 'player');
-    const loserOfDuel = winnerOfDuel === 'player' ? 'ai' : 'player';
+    const newOwner = winnerOfDuel;
 
-    let themeToConquer: string;
-    let newOwner: Player;
+    let newBoard: TileData[];
 
     if (activeTile.owner === 'unowned') {
-        // If challenging an unowned tile, the winner gets that theme
-        themeToConquer = activeTile.theme;
-        newOwner = winnerOfDuel;
+      // If challenging an unowned tile, the winner gets that tile.
+      newBoard = board.map(t =>
+        t.id === activeTile.id ? { ...t, owner: newOwner } : t
+      );
     } else {
-        // If challenging an owned tile, the winner gets the LOSER's theme
-        const loserTiles = board.filter(t => t.owner === loserOfDuel);
-        // We'll use the theme from the first tile of the loser
-        themeToConquer = loserTiles[0]?.theme;
-        newOwner = winnerOfDuel;
+      // If challenging an owned tile, the winner gets ALL tiles from the loser.
+      const loserOfDuel = winnerOfDuel === 'player' ? 'ai' : 'player';
+      newBoard = board.map(t =>
+        t.owner === loserOfDuel ? { ...t, owner: newOwner } : t
+      );
+      // The challenged tile is also conquered
+      const challengedTile = newBoard.find(t => t.id === activeTile.id)!;
+      challengedTile.owner = newOwner;
     }
-
-    const newBoard = board.map(t => {
-      // Conquer the specific challenged tile
-      if (t.id === activeTile.id) {
-        return { ...t, owner: newOwner };
-      }
-      // Conquer all tiles of the conquered theme
-      if (t.theme === themeToConquer) {
-        return { ...t, owner: newOwner };
-      }
-      // Conquer all tiles that previously belonged to the loser
-      if (t.owner === loserOfDuel) {
-        return { ...t, owner: newOwner };
-      }
-      return t;
-    });
 
     setBoard(newBoard);
     const newScores = {
@@ -178,11 +179,13 @@ export default function PlayPage() {
     if (checkEndGame(newBoard)) {
       setActiveTile(null);
       setActiveQuestion(null);
+      setChallengingPlayerTile(null);
       return;
     }
     
     setActiveTile(null);
     setActiveQuestion(null);
+    setChallengingPlayerTile(null);
     setTurn(turn === 'player' ? 'ai' : 'player');
     setGameState('ai_thinking');
   };
@@ -203,9 +206,11 @@ export default function PlayPage() {
     setWinner(null);
     setActiveTile(null);
     setActiveQuestion(null);
+    setChallengingPlayerTile(null);
   };
   
   const getNeighbors = useCallback((tileId: number, cols: number, rows: number) => {
+      if (cols === 0 || rows === 0) return [];
       const r = Math.floor(tileId / cols);
       const c = tileId % cols;
       const neighbors = [];
@@ -246,7 +251,7 @@ export default function PlayPage() {
                     return moveNeighbors > bestNeighbors ? move : best;
                 }, unownedTargets[0]);
             }
-            if (!bestMove) { // Fallback if no moves are found
+            if (!bestMove) { 
                  toast({ title: 'A IA não tem jogadas!', description: 'É a sua vez.' });
                  setTurn('player');
                  setGameState('playing');
@@ -258,9 +263,15 @@ export default function PlayPage() {
           let toastDescription;
 
           if(bestMove.owner === 'player') {
-            questionTheme = bestMove.theme;
-            toastDescription = `A IA desafia o seu território "${bestMove.theme}". A pergunta será sobre o tema da IA.`;
+             // AI challenges player. Question is about one of the AI's themes.
+            const neighborsOfClicked = getNeighbors(bestMove.id, cols, rows);
+            const adjacentAiTileId = neighborsOfClicked.find(id => aiTiles.some(ait => ait.id === id));
+            const defendingAiTile = adjacentAiTileId !== undefined ? board[adjacentAiTileId] : aiTiles[0];
+
+            questionTheme = defendingAiTile.theme;
+            toastDescription = `A IA desafia o seu território "${bestMove.theme}". A pergunta será sobre o tema da IA: "${questionTheme}".`;
           } else {
+            // AI challenges unowned tile. Question is about that tile's theme.
             questionTheme = bestMove.theme;
             toastDescription = `A IA desafia o território neutro "${bestMove.theme}".`;
           }
@@ -276,37 +287,27 @@ export default function PlayPage() {
           // This part now mimics the handleAnswer logic for the AI
           setTimeout(() => {
             const winnerOfDuel = isCorrect ? 'ai' : 'player';
-            const loserOfDuel = isCorrect ? 'player' : 'ai';
+            const newOwner = winnerOfDuel;
             
             toast({
                 title: `A IA respondeu... ${isCorrect ? 'corretamente!' : 'incorretamente!'}`,
-                description: `O território de "${bestMove.theme}" foi disputado.`,
+                description: `O duelo pelo território de "${bestMove.theme}" terminou.`,
             });
             
-            let themeToConquer: string;
-            let newOwner: Player;
-
+            let newBoard: TileData[];
+    
             if (bestMove.owner === 'unowned') {
-                themeToConquer = bestMove.theme;
-                newOwner = winnerOfDuel;
+              newBoard = board.map(t =>
+                t.id === bestMove.id ? { ...t, owner: newOwner } : t
+              );
             } else {
-                const loserTiles = board.filter(t => t.owner === loserOfDuel);
-                themeToConquer = loserTiles[0]?.theme;
-                newOwner = winnerOfDuel;
+              const loserOfDuel = winnerOfDuel === 'player' ? 'ai' : 'player';
+              newBoard = board.map(t =>
+                t.owner === loserOfDuel ? { ...t, owner: newOwner } : t
+              );
+              const challengedTile = newBoard.find(t => t.id === bestMove.id)!;
+              challengedTile.owner = newOwner;
             }
-
-            const newBoard = board.map(t => {
-              if (t.id === bestMove.id) {
-                return { ...t, owner: newOwner };
-              }
-              if (t.theme === themeToConquer) {
-                return { ...t, owner: newOwner };
-              }
-               if (t.owner === loserOfDuel) {
-                return { ...t, owner: newOwner };
-              }
-              return t;
-            });
             
             setBoard(newBoard);
             const newScores = {
@@ -378,6 +379,7 @@ export default function PlayPage() {
         question={activeQuestion}
         onAnswer={handleAnswer}
         onClose={handleModalClose}
+        defendingTile={challengingPlayerTile}
       />
       <GameOverDialog
         isOpen={gameState === 'finished'}
@@ -388,5 +390,3 @@ export default function PlayPage() {
     </div>
   );
 }
-
-    
