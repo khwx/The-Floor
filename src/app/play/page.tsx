@@ -164,7 +164,8 @@ export default function PlayPage() {
 
     // Logic for standard question (unowned tile)
     if (gameState === 'question') {
-      endTurn(correct);
+      // Delay to allow user to see feedback in modal
+      setTimeout(() => endTurn(correct), 1500);
       return;
     }
 
@@ -179,21 +180,26 @@ export default function PlayPage() {
       
       const updatedDuelState = {
           ...duel,
-          activeQuestionIndex: nextQuestionIndex,
           playerCorrect: newPlayerCorrect,
           aiCorrect: newAiCorrect,
       };
-      setDuel(updatedDuelState);
 
-      // If there are more questions, show the next one.
+      // If there are more questions, show the next one after a delay
       if (nextQuestionIndex < duel.questions.length) {
-        setActiveQuestion(duel.questions[nextQuestionIndex]);
+        setTimeout(() => {
+            setDuel({
+              ...updatedDuelState,
+              activeQuestionIndex: nextQuestionIndex,
+            });
+            setActiveQuestion(duel.questions[nextQuestionIndex]);
+        }, 1500); // 1.5 second delay to show result
       } else {
         // This was the last question. End the duel and determine the winner.
         if (timerRef.current) clearInterval(timerRef.current);
         
         let wasTurnSuccessful: boolean;
         if (duel.challenger === 'player') {
+          // Challenger must have MORE correct answers to win. Tie goes to the defender.
           wasTurnSuccessful = newPlayerCorrect > newAiCorrect;
         } else { // AI is challenger
           wasTurnSuccessful = newAiCorrect > newPlayerCorrect;
@@ -204,6 +210,7 @@ export default function PlayPage() {
           endTurn(wasTurnSuccessful);
         }, 1500); 
       }
+      setDuel(updatedDuelState);
     }
   };
   
@@ -327,7 +334,7 @@ export default function PlayPage() {
 
   // Effect to start duel timer
   useEffect(() => {
-    if (gameState === 'duel' && duel && duel.activeQuestionIndex === 0) {
+    if (gameState === 'duel' && duel && duel.activeQuestionIndex === 0 && duel.timeRemaining > 0) {
       startDuelTimer();
     }
     
