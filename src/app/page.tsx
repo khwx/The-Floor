@@ -15,18 +15,32 @@ export default function Home() {
         </p>
       </div>
 
-      <div className="w-full max-w-md mx-auto">
-        <GameLobby />
+      <div className="w-full max-w-md mx-auto space-y-8">
+        <Link href="/play" passHref>
+          <Button variant="secondary" className="w-full" size="lg">
+            <Gamepad2 className="mr-2 h-5 w-5" />
+            Jogar Sozinho (vs. IA)
+          </Button>
+        </Link>
+        
+        <div className="relative">
+            <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                <div className="w-full border-t border-border"></div>
+            </div>
+            <div className="relative flex justify-center">
+                <span className="bg-background px-2 text-sm text-muted-foreground">OU</span>
+            </div>
+        </div>
+
+        <Link href="/play/multiplayer" passHref>
+            <Button className="w-full" size="lg">
+                <Gamepad2 className="mr-2 h-5 w-5" />
+                Jogar em Equipa
+            </Button>
+        </Link>
+
       </div>
 
-      <div className="mt-8 text-center w-full max-w-md mx-auto border-t pt-8">
-         <Link href="/play" passHref>
-            <Button variant="secondary" className="w-full" size="lg">
-              <Gamepad2 className="mr-2 h-5 w-5" />
-              Jogar Sozinho (vs. IA)
-            </Button>
-          </Link>
-      </div>
 
        <footer className="mt-16 text-center text-muted-foreground text-sm">
         <p>Inspirado no programa de TV "The Floor".</p>
