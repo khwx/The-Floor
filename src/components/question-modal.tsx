@@ -28,6 +28,7 @@ type QuestionModalProps = {
 export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel }: QuestionModalProps) {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
@@ -35,7 +36,10 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel 
       setTimeout(() => {
         setSelectedOption(null);
         setIsAnswered(false);
+        setImageError(false);
       }, 300);
+    } else {
+        setImageError(false);
     }
   }, [isOpen]);
 
@@ -103,7 +107,7 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel 
           </div>
         ) : (
           <div>
-            {question.imageUrl && (
+            {question.imageUrl && !imageError && (
                 <div className="relative aspect-video w-full mb-4 rounded-md overflow-hidden bg-muted">
                     <Image 
                         src={question.imageUrl}
@@ -112,6 +116,7 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel 
                         height={300}
                         className="object-cover"
                         data-ai-hint={question.imageQuery}
+                        onError={() => setImageError(true)}
                     />
                 </div>
             )}
@@ -150,4 +155,3 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel 
     </Dialog>
   );
 }
-    
