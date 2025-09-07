@@ -13,7 +13,8 @@ import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 
-type GameState = 'setup' | 'playing' | 'ai_thinking' | 'question' | 'duel' | 'finished';
+type GameState = 'setup' | 'loading_board' | 'playing' | 'fetching_question' | 'ai_turn' | 'question' | 'duel' | 'finished';
+
 const DUEL_TIME_PER_QUESTION = 10; // seconds
 const MIN_DUEL_QUESTIONS = 5;
 
@@ -55,7 +56,7 @@ export default function PlayPage() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleGameStart = async (difficulty: GameDifficulty, lang: string) => {
-    setGameState('ai_thinking');
+    setGameState('loading_board');
     setLanguage(lang);
     const result = await generateFloor(difficulty, lang);
     if ('error' in result) {
@@ -109,7 +110,7 @@ export default function PlayPage() {
     const questionTheme = tile.theme;
 
     setActiveTile(tile);
-    setGameState('ai_thinking'); // Show loader while fetching question(s)
+    setGameState('fetching_question');
     
     let questionCount = 1;
     if (isDuel) {
@@ -162,7 +163,6 @@ export default function PlayPage() {
   const endDuel = useCallback((finalDuelState: DuelState) => {
     let wasTurnSuccessful: boolean;
     if (finalDuelState.challenger === 'player') {
-      // Challenger must have MORE correct answers to win. Tie goes to the defender.
       wasTurnSuccessful = finalDuelState.playerCorrect > finalDuelState.aiCorrect;
     } else { // AI is challenger
       wasTurnSuccessful = finalDuelState.aiCorrect > finalDuelState.playerCorrect;
@@ -180,7 +180,7 @@ export default function PlayPage() {
     setTimeout(() => {
       endTurn(wasTurnSuccessful, finalDuelState.challenger);
     }, 1500);
-  }, [toast]); // Simplified dependencies for now
+  }, [endTurn]);
   
   const handleAnswer = (correct: boolean) => {
     if (!activeTile) return;
@@ -272,7 +272,7 @@ export default function PlayPage() {
     
     const nextTurn = currentTurnPlayer === 'player' ? 'ai' : 'player';
     setTurn(nextTurn);
-    setGameState(nextTurn === 'ai' ? 'ai_thinking' : 'playing');
+    setGameState(nextTurn === 'ai' ? 'ai_turn' : 'playing');
   }, [board, activeTile, checkEndGame]);
 
 
@@ -335,7 +335,7 @@ export default function PlayPage() {
           });
           
           const challenger = prevDuel.challenger;
-          // Use a functional update for endTurn to get the latest state
+          
           setTimeout(() => {
             endTurn(challenger !== 'player', challenger);
           }, 1500);
@@ -349,12 +349,9 @@ export default function PlayPage() {
   // Effect to start duel timer
   useEffect(() => {
     if (gameState === 'duel' && duel && duel.timeRemaining > 0) {
-      // Clear any existing timer before starting a new one
-      if (timerRef.current) clearInterval(timerRef.current);
       startDuelTimer();
     }
     
-    // Cleanup timer if the game state changes away from a duel
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
@@ -364,9 +361,14 @@ export default function PlayPage() {
   }, [gameState, duel, startDuelTimer]);
 
 
+  // AI Turn Logic
   useEffect(() => {
-    if (gameState === 'ai_thinking' && turn === 'ai' && board.length > 0) {
-      const aiTurn = setTimeout(async () => {
+    // This effect should ONLY run when it's the AI's turn to make a move.
+    if (gameState !== 'ai_turn' || turn !== 'ai' || board.length === 0) {
+      return;
+    }
+
+    const aiTurnTimeout = setTimeout(async () => {
         const { rows, cols } = gridSize;
         const aiTiles = board.filter(t => t.owner === 'ai');
         let possibleTargets: TileData[] = [];
@@ -389,96 +391,68 @@ export default function PlayPage() {
            return;
         }
 
-        // Simple AI: pick a random target
         const targetTile = possibleTargets[Math.floor(Math.random() * possibleTargets.length)];
+        setActiveTile(targetTile); // Set active tile for endTurn logic
+
         const isDuel = targetTile.owner === 'player';
         const theme = targetTile.theme;
         
-        // This is a crucial step that was missing a proper update
-        setActiveTile(targetTile); 
-
         if (isDuel) {
-          // AI challenges player to a duel
-          const territoryCount = board.filter(t => t.owner === 'player' && t.theme === theme).length;
-          const numQuestions = Math.max(MIN_DUEL_QUESTIONS, territoryCount);
+            const territoryCount = board.filter(t => t.owner === 'player' && t.theme === theme).length;
+            const numQuestions = Math.max(MIN_DUEL_QUESTIONS, territoryCount);
 
-          toast({
-              title: `Turno da IA: Desafio!`,
-              description: `A IA desafia o seu território de "${theme}". Prepare-se para um duelo de ${numQuestions} perguntas!`,
-          });
-          
-          const questionResult = await generateQuestion(theme, language, numQuestions);
-
-          if ('error' in questionResult) {
-              toast({ title: 'Falha ao obter perguntas para o duelo.', variant: 'destructive' });
-              endTurn(false, 'ai');
-              return;
-          }
-          
-          const totalDuelTime = DUEL_TIME_PER_QUESTION * questionResult.length;
-          
-          const aiDuelState: DuelState = {
-              challenger: 'ai',
-              questions: questionResult,
-              activeQuestionIndex: 0,
-              playerCorrect: 0,
-              aiCorrect: 0,
-              timeRemaining: totalDuelTime,
-          };
-          
-          // Simulate the entire duel for the AI vs Player
-          let simulatedDuel = aiDuelState;
-          for(let i = 0; i < numQuestions; i++){
-            const aiIsCorrect = Math.random() > 0.35; // 65%
-            const playerIsCorrect = Math.random() > 0.5; // 50%
-            simulatedDuel = {
-              ...simulatedDuel,
-              aiCorrect: simulatedDuel.aiCorrect + (aiIsCorrect ? 1 : 0),
-              playerCorrect: simulatedDuel.playerCorrect + (playerIsCorrect ? 1 : 0),
-            }
-          }
-          
-          const aiWon = simulatedDuel.aiCorrect > simulatedDuel.playerCorrect;
-
-          setTimeout(() => {
-              toast({
-                  title: `Duelo com IA terminado!`,
-                  description: `A IA acertou ${simulatedDuel.aiCorrect} e você ${simulatedDuel.playerCorrect}. A IA ${aiWon ? 'venceu' : 'perdeu'}!`,
-                  variant: aiWon ? 'destructive' : 'default'
-              });
-              endTurn(aiWon, 'ai');
-          }, 2000);
-
-
-        } else {
-          // AI captures an unowned tile
-           toast({
-              title: `Turno da IA`,
-              description: `A IA tenta conquistar o território neutro de "${theme}".`,
-          });
-          
-          const isCorrect = Math.random() > 0.35; // 65% chance to be correct
-
-          setTimeout(() => {
             toast({
-                title: `A IA respondeu ${isCorrect ? 'corretamente' : 'incorretamente'}!`,
-                variant: isCorrect ? 'default' : 'destructive'
+                title: `Turno da IA: Desafio!`,
+                description: `A IA desafia o seu território de "${theme}". Prepare-se para um duelo de ${numQuestions} perguntas!`,
             });
-            endTurn(isCorrect, 'ai');
-          }, 2000);
+            
+            // In a real scenario, we might fetch questions. For AI, we can simulate the outcome.
+            let aiCorrect = 0;
+            let playerCorrect = 0;
+            for(let i = 0; i < numQuestions; i++){
+                if (Math.random() > 0.35) aiCorrect++; // 65% chance for AI
+                if (Math.random() > 0.5) playerCorrect++; // 50% chance for player
+            }
+
+            const aiWon = aiCorrect > playerCorrect;
+
+            setTimeout(() => {
+                toast({
+                    title: `Duelo com IA terminado!`,
+                    description: `A IA acertou ${aiCorrect} e você ${playerCorrect}. A IA ${aiWon ? 'venceu' : 'perdeu'}!`,
+                    variant: aiWon ? 'destructive' : 'default'
+                });
+                // Pass the correct activeTile to endTurn
+                endTurn(aiWon, 'ai');
+            }, 2000);
+
+        } else { // AI captures an unowned tile
+            toast({
+                title: `Turno da IA`,
+                description: `A IA tenta conquistar o território neutro de "${theme}".`,
+            });
+            
+            const isCorrect = Math.random() > 0.35; // 65% chance to be correct
+
+            setTimeout(() => {
+                toast({
+                    title: `A IA respondeu ${isCorrect ? 'corretamente' : 'incorretamente'}!`,
+                    variant: isCorrect ? 'default' : 'destructive'
+                });
+                endTurn(isCorrect, 'ai');
+            }, 2000);
         }
 
-      }, 1500);
+    }, 1500);
 
-      return () => clearTimeout(aiTurn);
-    }
+    return () => clearTimeout(aiTurnTimeout);
   }, [gameState, turn, board, gridSize, language, getNeighbors, endTurn, toast]);
 
   if (gameState === 'setup') {
     return <GameSetup onStart={handleGameStart} />;
   }
   
-  if (gameState === 'ai_thinking' && board.length === 0) {
+  if (gameState === 'loading_board') {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -505,9 +479,9 @@ export default function PlayPage() {
             onTileClick={handleTileClick}
             playerTurn={turn === 'player' && gameState === 'playing'}
           />
-          {(gameState === 'ai_thinking' && turn === 'ai') && (
+          {(gameState === 'ai_turn' || gameState === 'fetching_question') && (
             <div className="absolute inset-0 bg-black/10 flex flex-col items-center justify-center z-10 rounded-lg pointer-events-none">
-                {/* A animação de loading foi removida para dar lugar a toasts informativos */}
+                {/* Visual feedback can be added here if desired, but toasts are primary */}
             </div>
           )}
         </main>
@@ -530,3 +504,5 @@ export default function PlayPage() {
     </div>
   );
 }
+
+    
