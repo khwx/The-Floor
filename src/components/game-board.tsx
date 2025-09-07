@@ -10,7 +10,7 @@ type GameBoardProps = {
 
 export function GameBoard({ board, gridSize, onTileClick, playerTurn }: GameBoardProps) {
   
-  const getAdjacentPlayerTiles = (tileId: number): boolean => {
+  const getIsAdjacentToPlayer = (tileId: number): boolean => {
     const playerTiles = board.filter(t => t.owner === 'player').map(t => t.id);
     const { cols } = gridSize;
     const r = Math.floor(tileId / cols);
@@ -40,10 +40,13 @@ export function GameBoard({ board, gridSize, onTileClick, playerTurn }: GameBoar
       }}
     >
       {board.map((tile) => {
+        // Player can click on unowned tiles adjacent to their own,
+        // or any AI-owned tile that is adjacent to one of their own.
+        const isAdjacent = getIsAdjacentToPlayer(tile.id);
         const isClickable =
           playerTurn &&
-          tile.owner === 'unowned' &&
-          getAdjacentPlayerTiles(tile.id);
+          tile.owner !== 'player' &&
+          isAdjacent;
         
         return (
           <Tile
@@ -57,3 +60,5 @@ export function GameBoard({ board, gridSize, onTileClick, playerTurn }: GameBoar
     </div>
   );
 }
+
+    

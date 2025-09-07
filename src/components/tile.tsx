@@ -18,7 +18,7 @@ export function Tile({ tile, isClickable, onClick }: TileProps) {
   const [prevOwner, setPrevOwner] = useState(tile.owner);
 
   useEffect(() => {
-    if (tile.owner !== 'unowned' && prevOwner === 'unowned') {
+    if (tile.owner !== 'unowned' && prevOwner !== tile.owner) {
       setIsConquered(true);
       const timer = setTimeout(() => setIsConquered(false), 400); // Animation duration
       return () => clearTimeout(timer);
@@ -55,7 +55,7 @@ export function Tile({ tile, isClickable, onClick }: TileProps) {
       <span className={cn('text-xs font-medium text-center truncate w-full mt-1 capitalize', iconColorClass)}>
         {tile.theme}
       </span>
-      {!isClickable && tile.owner === 'unowned' && (
+      {!isClickable && tile.owner !== 'player' && (
         <div className="absolute inset-0 bg-black/40 rounded-md flex items-center justify-center">
             <Lock className="h-6 w-6 text-white/50" />
         </div>
@@ -63,3 +63,5 @@ export function Tile({ tile, isClickable, onClick }: TileProps) {
     </button>
   );
 }
+
+    
