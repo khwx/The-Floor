@@ -72,6 +72,9 @@ Limit yourself to these themes: animals, general trivia, historical landmarks.
 {{#if (eq difficulty 'hard')}}
 Use any themes.
 {{/if}}`,
+  config: {
+    model,
+  }
 });
 
 const generateThemedFloorFlow = ai.defineFlow(
@@ -81,7 +84,7 @@ const generateThemedFloorFlow = ai.defineFlow(
     outputSchema: GenerateThemedFloorOutputSchema,
   },
   async input => {
-    const {output} = await prompt({input, model});
+    const {output} = await prompt(input);
     return output!;
   }
 );
