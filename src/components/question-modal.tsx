@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -20,7 +22,7 @@ type QuestionModalProps = {
   question: Question | null;
   onAnswer: (correct: boolean) => void;
   onClose: () => void;
-  duel?: DuelState | null;
+  duel: DuelState | null;
 };
 
 export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel }: QuestionModalProps) {
@@ -148,5 +150,4 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel 
     </Dialog>
   );
 }
-
     
