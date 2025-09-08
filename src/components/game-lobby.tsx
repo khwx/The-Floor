@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useActionState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -34,9 +33,14 @@ function SubmitButton({ text, loadingText, icon }: { text: string; loadingText: 
 function CreateGameForm() {
     const [difficulty, setDifficulty] = useState<GameDifficulty>('easy');
     const [language, setLanguage] = useState('Portuguese');
-    // useActionState is useful for displaying errors, but since our action redirects on success or error, 
-    // we might not see the error message. For now, we'll keep it to see if we can catch any pre-redirect errors.
-    const [createGameState, createGameAction] = useActionState(createGameSession, undefined);
+    const [error, setError] = useState<string | null>(null);
+
+    const handleSubmit = async (formData: FormData) => {
+        const result = await createGameSession(null, formData);
+        if (result?.error) {
+            setError(result.error);
+        }
+    }
 
     return (
         <Card className="shadow-lg">
@@ -45,7 +49,7 @@ function CreateGameForm() {
                 <CardDescription>Crie uma nova sala de jogo e convide um amigo para jogar.</CardDescription>
             </CardHeader>
             <CardContent>
-                <form action={createGameAction} className="space-y-4">
+                <form action={handleSubmit} className="space-y-4">
                     <div className="space-y-2">
                         <Label htmlFor="difficulty-create">Dificuldade</Label>
                         <Select name="difficulty" onValueChange={(value: GameDifficulty) => setDifficulty(value)} value={difficulty}>
@@ -75,8 +79,8 @@ function CreateGameForm() {
                             </SelectContent>
                         </Select>
                     </div>
-                    {createGameState?.error && (
-                        <p className="text-sm font-medium text-destructive">{createGameState.error}</p>
+                    {error && (
+                        <p className="text-sm font-medium text-destructive">{error}</p>
                     )}
                     <SubmitButton text="Criar Jogo" loadingText="A criar..." icon={<Users className="mr-2 h-5 w-5"/>} />
                 </form>
@@ -86,7 +90,14 @@ function CreateGameForm() {
 }
 
 function JoinGameForm() {
-    const [joinGameState, joinGameAction] = useActionState(joinGameSession, undefined);
+    const [error, setError] = useState<string | null>(null);
+
+    const handleSubmit = async (formData: FormData) => {
+        const result = await joinGameSession(null, formData);
+        if (result?.error) {
+            setError(result.error);
+        }
+    }
 
     return (
         <Card className="shadow-lg">
@@ -95,7 +106,7 @@ function JoinGameForm() {
                 <CardDescription>Tem um código de jogo? Insira-o abaixo para se juntar.</CardDescription>
             </CardHeader>
             <CardContent>
-                <form action={joinGameAction} className="space-y-4">
+                <form action={handleSubmit} className="space-y-4">
                     <div className="space-y-2">
                         <Label htmlFor="gameId">Código do Jogo</Label>
                         <Input
@@ -107,8 +118,8 @@ function JoinGameForm() {
                             className="text-center tracking-[0.5em] uppercase text-lg font-bold"
                         />
                     </div>
-                    {joinGameState?.error && (
-                        <p className="text-sm font-medium text-destructive">{joinGameState.error}</p>
+                    {error && (
+                        <p className="text-sm font-medium text-destructive">{error}</p>
                     )}
                     <SubmitButton text="Entrar no Jogo" loadingText="A entrar..." icon={<Play className="mr-2 h-5 w-5"/>} />
                 </form>

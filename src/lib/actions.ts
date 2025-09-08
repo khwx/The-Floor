@@ -103,7 +103,7 @@ function generateGameId(length = 6) {
 }
 
 
-export async function createGameSession(prevState: any, formData: FormData) {
+export async function createGameSession(prevState: any, formData: FormData): Promise<{ error: string } | void> {
   const difficulty = formData.get('difficulty') as GameDifficulty;
   const language = formData.get('language') as string;
   const gameId = generateGameId();
@@ -132,7 +132,7 @@ export async function createGameSession(prevState: any, formData: FormData) {
   redirect(`/play/multiplayer/${gameId}`);
 }
 
-export async function joinGameSession(prevState: any, formData: FormData) {
+export async function joinGameSession(prevState: any, formData: FormData): Promise<{ error: string } | void> {
     const gameId = (formData.get('gameId') as string)?.toUpperCase();
 
     if (!gameId || gameId.length !== 6) {
