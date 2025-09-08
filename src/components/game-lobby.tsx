@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useActionState } from 'react';
+import { useState, useActionState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -30,10 +31,23 @@ function SubmitButton({ text, loadingText, icon }: { text: string; loadingText: 
   );
 }
 
+const initialState = {
+    error: null,
+    success: false,
+    gameId: null,
+};
+
 function CreateGameForm() {
+    const router = useRouter();
     const [difficulty, setDifficulty] = useState<GameDifficulty>('easy');
     const [language, setLanguage] = useState('Portuguese');
-    const [state, formAction] = useActionState(createGameSession, { error: null });
+    const [state, formAction] = useActionState(createGameSession, initialState);
+
+    useEffect(() => {
+        if (state.success && state.gameId) {
+            router.push(`/play/multiplayer/${state.gameId}`);
+        }
+    }, [state, router]);
 
     return (
         <Card className="shadow-lg">
@@ -83,7 +97,14 @@ function CreateGameForm() {
 }
 
 function JoinGameForm() {
-    const [state, formAction] = useActionState(joinGameSession, { error: null });
+    const router = useRouter();
+    const [state, formAction] = useActionState(joinGameSession, initialState);
+
+     useEffect(() => {
+        if (state.success && state.gameId) {
+            router.push(`/play/multiplayer/${state.gameId}`);
+        }
+    }, [state, router]);
 
     return (
         <Card className="shadow-lg">
