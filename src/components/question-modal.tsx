@@ -10,7 +10,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import type { TileData, Question, DuelState, Player } from '@/lib/types';
+import type { TileData, Question, MultiplayerDuelState, PlayerRole } from '@/lib/types';
 import { getIconForTheme } from './icons';
 import { Loader2, Swords, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -22,8 +22,8 @@ type QuestionModalProps = {
   question: Question | null;
   onAnswer: (correct: boolean) => void;
   onClose: () => void;
-  duel: DuelState | null;
-  currentPlayer?: Player;
+  duel: MultiplayerDuelState | null;
+  currentPlayer: PlayerRole | null;
 };
 
 export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel, currentPlayer }: QuestionModalProps) {
@@ -46,8 +46,20 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel,
       }, 300);
     }
   }, [isOpen]);
+  
+  // Determine if the current player has already answered the current question in a duel
+  useEffect(() => {
+      if (duel && currentPlayer && question) {
+          const currentAnswers = duel.answers[duel.activeQuestionIndex];
+          if (currentAnswers && currentAnswers[currentPlayer] !== undefined) {
+              setIsAnswered(true);
+          } else {
+              setIsAnswered(false);
+          }
+      }
+  }, [duel, currentPlayer, question]);
 
-  if (!tile) return null;
+  if (!tile || !currentPlayer) return null;
   
   const questionTile = tile;
   const ThemeIcon = getIconForTheme(questionTile.theme);
@@ -66,18 +78,36 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel,
 
   const getOptionClass = (option: string) => {
     if (!isAnswered) return '';
+
+    // If it's a duel, we don't flash answers until both have answered, which happens on the next state update.
+    if (duel) return 'opacity-50';
+
     if (option === question?.answer) return 'animate-flash-green';
     if (option === selectedOption && option !== question?.answer) return 'animate-flash-red';
     return 'opacity-50';
   }
-
+  
   const isDuel = !!duel;
-  let duelTurnPlayer: Player | null = null;
-  if(isDuel) {
-      const isChallengerTurn = (duel.activeQuestionIndex % 2 === 0);
-      duelTurnPlayer = isChallengerTurn ? duel.challenger : (duel.challenger === 'player1' ? 'player2' : 'player1');
+  let duelTurnPlayer: PlayerRole | string = 'Ambos';
+  
+  const playerDisplayName = {
+      player1: 'Jogador 1',
+      player2: 'Jogador 2'
   }
-  const displayPlayer = isDuel ? duelTurnPlayer : currentPlayer;
+
+  let description = `Vez do ${currentPlayer === 'player1' ? playerDisplayName.player1 : playerDisplayName.player2}. Responda à pergunta para conquistar a casa.`;
+  if (isDuel) {
+      const answersForThisQuestion = duel.answers[duel.activeQuestionIndex] || {};
+      const answeredPlayers = Object.keys(answersForThisQuestion);
+      if (answeredPlayers.length === 0) {
+          duelTurnPlayer = 'Ambos os jogadores';
+      } else if (answeredPlayers.length === 1) {
+          const waitingForPlayer = answeredPlayers[0] === 'player1' ? 'player2' : 'player1';
+          duelTurnPlayer = `A aguardar pelo ${playerDisplayName[waitingForPlayer]}`;
+      }
+       description = `Tema: "${tile.theme}". ${duelTurnPlayer}.`;
+  }
+
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -101,9 +131,7 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel,
              </DialogTitle>
            )}
           <DialogDescription>
-            {isDuel
-              ? `Vez do ${displayPlayer === 'player1' ? 'Jogador 1' : 'Jogador 2'}. Tema: "${tile.theme}".`
-              : `Vez do ${displayPlayer === 'player' ? 'Jogador' : displayPlayer === 'player1' ? 'Jogador 1' : 'Jogador 2'}. Responda à pergunta para conquistar a casa.`}
+            {description}
           </DialogDescription>
         </DialogHeader>
         
@@ -155,7 +183,7 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel,
             onClick={handleSubmit}
             disabled={!selectedOption || isAnswered}
           >
-            {isAnswered ? 'A continuar...' : 'Submeter Resposta'}
+            {isAnswered ? 'Aguarde...' : 'Submeter Resposta'}
           </Button>
         </DialogFooter>
       </DialogContent>

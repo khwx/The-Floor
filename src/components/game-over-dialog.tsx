@@ -7,12 +7,12 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import type { Player } from '@/lib/types';
+import type { Player, PlayerRole } from '@/lib/types';
 import { Trophy, User, Bot, Scale, UserSquare, UserCircle } from 'lucide-react';
 
 type GameOverDialogProps = {
   isOpen: boolean;
-  winner: Player | 'draw' | null;
+  winner: Player | PlayerRole | 'draw' | null;
   scores: { player: number; ai: number } | { player1: number; player2: number; };
   onPlayAgain: () => void;
 };
@@ -30,10 +30,11 @@ export function GameOverDialog({ isOpen, winner, scores, onPlayAgain }: GameOver
     draw: { title: "É um Empate!", icon: <Scale className="h-16 w-16 text-muted-foreground" />, description: "Uma batalha renhida termina em empate." },
   };
 
-  const { title, icon, description } = messages[winner];
+  const winnerKey = winner as keyof typeof messages;
+  const { title, icon, description } = messages[winnerKey] || messages.draw;
 
   return (
-    <Dialog open={isOpen}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onPlayAgain()}>
       <DialogContent>
         <DialogHeader className="items-center text-center">
           <div className="mb-4">{icon}</div>

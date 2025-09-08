@@ -31,20 +31,23 @@ export type DuelState = {
 };
 
 // Firestore Game State for Multiplayer
-export type GameStatus = 'waiting' | 'generating' | 'playing' | 'processing' | 'finished' | 'error';
+export type GameStatus = 'waiting' | 'generating' | 'playing' | 'processing' | 'question' | 'duel' | 'finished' | 'error';
 
 // This represents the question/duel currently active in a multiplayer game
 export type ActiveQuestionInfo = {
     challenger: PlayerRole;
     tile: TileData;
-    question?: Question; // For single questions
+    question: Question;
 };
 
 // This represents a duel state in a multiplayer game
 export type MultiplayerDuelState = {
     challenger: PlayerRole;
+    tile: TileData;
     questions: Question[];
     activeQuestionIndex: number;
+    // Keep track of which player has answered the current question
+    answers: { [questionIndex: number]: { [player in PlayerRole]?: boolean } };
     scores: {
         player1: number;
         player2: number;
@@ -66,7 +69,7 @@ export type GameState = {
         player1: string; // user ID
         player2: string | null; // user ID
     }
-    winner?: PlayerRole | 'draw';
+    winner?: PlayerRole | 'draw' | null;
     activeQuestion?: ActiveQuestionInfo | null;
     duelState?: MultiplayerDuelState | null;
 }

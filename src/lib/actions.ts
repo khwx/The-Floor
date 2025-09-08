@@ -5,7 +5,7 @@ import { generateThemedFloor } from '@/ai/flows/generate-themed-floor';
 import { generateQuestion as generateQuestionFlow } from '@/ai/flows/generate-question';
 import type { GameDifficulty, Territory, Question, GameState, PlayerRole, TileData } from './types';
 import { db } from './firebase';
-import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, runTransaction, writeBatch } from 'firebase/firestore';
 
 export async function generateFloor(
   difficulty: GameDifficulty,
@@ -105,9 +105,10 @@ function generateGameId(length = 6) {
 export async function createGameSession(formData: FormData) {
   const difficulty = formData.get('difficulty') as GameDifficulty;
   const language = formData.get('language') as string;
+  const lobbyUrl = '/play/multiplayer';
   
   if (!difficulty || !language) {
-      redirect('/play/multiplayer?error=Dificuldade+e+idioma+são+obrigatórios.');
+      redirect(`${lobbyUrl}?error=Dificuldade+e+idioma+são+obrigatórios.`);
   }
 
   const gameId = generateGameId();
@@ -122,23 +123,22 @@ export async function createGameSession(formData: FormData) {
     players: {
       player1: 'player1_id', // This would be the actual user ID
       player2: null
-    }
+    },
+    board: [],
+    activeQuestion: null,
+    duelState: null,
+    winner: undefined,
   };
 
   try {
     await setDoc(doc(db, 'games', gameId), initialGameState);
-    // This session storage item is a simplified way to track the player's role.
-    // In a real app, this would be handled by a proper auth system.
-    // We set it here so the player creating the game is identified as player1.
-    // We can't use cookies or headers because this is a server action.
-    // This is a creative workaround for the demo.
   } catch (error) {
     console.error("Failed to create game session in Firestore:", error);
     const errorMessage = error instanceof Error ? error.message : 'Could not create game in database.';
-    redirect(`/play/multiplayer?error=${encodeURIComponent(errorMessage)}`);
+    redirect(`${lobbyUrl}?error=${encodeURIComponent(errorMessage)}`);
   }
   
-  redirect(`/play/multiplayer/${gameId}`);
+  redirect(`/play/multiplayer/${gameId}?role=player1`);
 }
 
 export async function joinGameSession(formData: FormData) {
@@ -160,22 +160,22 @@ export async function joinGameSession(formData: FormData) {
 
       const gameState = gameDoc.data() as GameState;
 
-      if (gameState.players.player2) {
+      if (gameState.players.player2 && gameState.players.player2 !== 'player2_id_joining') {
           redirect(`${lobbyUrl}?error=${encodeURIComponent('Este jogo já está cheio.')}`);
       }
-      if (gameState.status !== 'waiting') {
+      if (gameState.status !== 'waiting' && gameState.status !== 'generating') {
         redirect(`${lobbyUrl}?error=${encodeURIComponent('Este jogo já começou ou terminou.')}`);
       }
       
       await updateDoc(gameDocRef, {
-        'players.player2': 'player2_id', 
+        'players.player2': 'player2_id_joining', 
         'status': 'generating'
       });
 
-      generateFloor(gameState.difficulty, gameState.language).then(floorResult => {
+      generateFloor(gameState.difficulty, gameState.language).then(async floorResult => {
           if('error' in floorResult) {
             console.error(`Failed to generate floor for game ${gameId}: ${floorResult.error}`);
-            updateDoc(gameDocRef, { status: 'error', errorMessage: floorResult.error });
+            await updateDoc(gameDocRef, { status: 'error', errorMessage: floorResult.error });
             return;
           }
 
@@ -188,10 +188,11 @@ export async function joinGameSession(formData: FormData) {
           initialBoard[0].owner = 'player1';
           initialBoard[initialBoard.length - 1].owner = 'player2';
 
-          updateDoc(gameDocRef, {
+          await updateDoc(gameDocRef, {
             board: initialBoard,
             scores: { player1: 1, player2: 1 },
             status: 'playing',
+            'players.player2': 'player2_id',
           });
       });
       
@@ -201,89 +202,143 @@ export async function joinGameSession(formData: FormData) {
        redirect(`${lobbyUrl}?error=${encodeURIComponent(errorMessage)}`);
     }
 
-    redirect(`/play/multiplayer/${gameId}`);
+    redirect(`/play/multiplayer/${gameId}?role=player2`);
 }
 
 
 export async function handleTileClick(gameId: string, tileId: number, player: PlayerRole) {
-  const gameDocRef = doc(db, 'games', gameId);
   try {
-    const gameDoc = await getDoc(doc(db, 'games', gameId));
-    if (!gameDoc.exists()) throw new Error("Game not found");
-    const gameState = gameDoc.data() as GameState;
+    await runTransaction(db, async (transaction) => {
+      const gameDocRef = doc(db, 'games', gameId);
+      const gameDoc = await transaction.get(gameDocRef);
 
-    if (gameState.status !== 'playing' || gameState.turn !== player) {
-      return { error: "Não é a sua vez de jogar." };
-    }
-    
-    const tile = gameState.board.find(t => t.id === tileId);
-    if (!tile) throw new Error("Tile not found");
+      if (!gameDoc.exists()) throw new Error("Jogo não encontrado");
+      const gameState = gameDoc.data() as GameState;
 
-    await updateDoc(gameDocRef, { status: 'processing' });
-    
-    const isDuel = tile.owner !== 'unowned' && tile.owner !== player;
-    const questionTheme = tile.theme;
-    
-    let questionCount = 1;
-    if (isDuel) {
-       const opponent = player === 'player1' ? 'player2' : 'player1';
-       const territoryCount = gameState.board.filter(t => t.owner === opponent && t.theme === questionTheme).length;
-       questionCount = Math.max(1, territoryCount); // Simplified for now
-    }
+      if (gameState.status !== 'playing' || gameState.turn !== player) {
+        throw new Error("Não é a sua vez de jogar ou o jogo não está ativo.");
+      }
+      
+      const tile = gameState.board.find(t => t.id === tileId);
+      if (!tile) throw new Error("Casa não encontrada");
+      
+      const isDuel = tile.owner !== 'unowned' && tile.owner !== player;
+      const questionTheme = tile.theme;
 
-    const questions = await generateQuestionsWithImages(questionTheme, gameState.language, questionCount);
-    if ('error' in questions) {
-       await updateDoc(gameDocRef, { status: 'playing' });
-       return { error: questions.error };
-    }
+      transaction.update(gameDocRef, { status: 'processing' });
 
-    if (isDuel) {
-        await updateDoc(gameDocRef, {
-            activeQuestion: {
-                challenger: player,
-                tile: tile,
-            },
-            duelState: {
-                challenger: player,
-                questions: questions,
-                activeQuestionIndex: 0,
-                scores: { player1: 0, player2: 0 },
-                timeRemaining: 15 * questions.length, // Simplified timer
-            },
-            status: 'playing', // Back to playing to allow answers
+      let questionCount = 1;
+      if (isDuel) {
+        const opponent = player === 'player1' ? 'player2' : 'player1';
+        const territoryCount = gameState.board.filter(t => t.owner === opponent && t.theme === questionTheme).length;
+        questionCount = Math.max(1, territoryCount);
+      }
+
+      const questions = await generateQuestionsWithImages(questionTheme, gameState.language, questionCount);
+      if ('error' in questions) {
+        throw new Error(questions.error);
+      }
+
+      if (isDuel) {
+        transaction.update(gameDocRef, {
+          duelState: {
+            challenger: player,
+            tile: tile,
+            questions: questions,
+            activeQuestionIndex: 0,
+            answers: {},
+            scores: { player1: 0, player2: 0 },
+            timeRemaining: 15 * questions.length,
+          },
+          status: 'duel',
+          activeQuestion: null,
         });
-    } else {
-        await updateDoc(gameDocRef, {
-            activeQuestion: {
-                challenger: player,
-                tile: tile,
-                question: questions[0],
-            },
-            duelState: null,
-            status: 'playing',
+      } else {
+        transaction.update(gameDocRef, {
+          activeQuestion: {
+            challenger: player,
+            tile: tile,
+            question: questions[0],
+          },
+          status: 'question',
+          duelState: null,
         });
-    }
-
+      }
+    });
   } catch(e) {
-     await updateDoc(gameDocRef, { status: 'playing' });
-     console.error(e);
-     if (e instanceof Error) return { error: e.message };
-     return { error: "An unknown error occurred." };
+    console.error(e);
+    // If transaction fails, we might need to revert status back to 'playing'
+    await updateDoc(doc(db, 'games', gameId), { status: 'playing' });
+    if (e instanceof Error) return { error: e.message };
+    return { error: "An unknown error occurred." };
   }
 }
 
-export async function checkEndGame(gameId: string, wasTurnSuccessful: boolean, currentTurnPlayer: PlayerRole, conqueredTileId: number) {
-  const gameDocRef = doc(db, 'games', gameId);
-  const gameDoc = await getDoc(gameDocRef);
-  if (!gameDoc.exists()) throw new Error("Game not found during checkEndGame");
-  
-  let gameState = gameDoc.data() as GameState;
+export async function submitAnswer(gameId: string, player: PlayerRole, tileId: number, isCorrect: boolean) {
+    try {
+        await runTransaction(db, async (transaction) => {
+            const gameDocRef = doc(db, 'games', gameId);
+            const gameDoc = await transaction.get(gameDocRef);
+            if (!gameDoc.exists()) throw new Error("Game not found");
+            
+            let gameState = gameDoc.data() as GameState;
+            const { status, activeQuestion, duelState } = gameState;
+
+            if (status === 'question' && activeQuestion) {
+                if(activeQuestion.challenger !== player) throw new Error("Not your turn to answer.");
+                
+                transaction.update(gameDocRef, await checkEndGame(gameState, player, tileId, isCorrect));
+
+            } else if (status === 'duel' && duelState) {
+                const { activeQuestionIndex, answers, questions } = duelState;
+                const currentAnswers = answers[activeQuestionIndex] || {};
+
+                if(currentAnswers[player] !== undefined) throw new Error("You have already answered.");
+
+                const newDuelState = { ...duelState };
+                newDuelState.answers[activeQuestionIndex] = { ...currentAnswers, [player]: isCorrect };
+                
+                // Check if both players have answered
+                const opponent = player === 'player1' ? 'player2' : 'player1';
+                if(newDuelState.answers[activeQuestionIndex][opponent] !== undefined) {
+                    // Both answered, determine winner of the round
+                    const playerAnswer = newDuelState.answers[activeQuestionIndex][player];
+                    const opponentAnswer = newDuelState.answers[activeQuestionIndex][opponent];
+
+                    if (playerAnswer && !opponentAnswer) {
+                       newDuelState.scores[player]++;
+                    } else if (!playerAnswer && opponentAnswer) {
+                       newDuelState.scores[opponent]++;
+                    }
+                    
+                    // Move to next question or end duel
+                    if (activeQuestionIndex + 1 < questions.length) {
+                        newDuelState.activeQuestionIndex++;
+                    } else {
+                        // End of duel
+                        const challengerWon = newDuelState.scores[duelState.challenger] > newDuelState.scores[duelState.challenger === 'player1' ? 'player2' : 'player1'];
+                        transaction.update(gameDocRef, await checkEndGame(gameState, duelState.challenger, duelState.tile.id, challengerWon));
+                        return; // Exit transaction
+                    }
+                }
+                transaction.update(gameDocRef, { duelState: newDuelState });
+            } else {
+                throw new Error("No active question or duel to answer.");
+            }
+        });
+    } catch(e) {
+        console.error(e);
+        if (e instanceof Error) return { error: e.message };
+        return { error: "An unknown error occurred while submitting answer." };
+    }
+}
+
+async function checkEndGame(gameState: GameState, winnerOfTurn: PlayerRole, conqueredTileId: number, wasTurnSuccessful: boolean): Promise<Partial<GameState>> {
   let newBoard = [...gameState.board];
   let tileWasConquered = false;
   const conqueredTile = newBoard.find(t => t.id === conqueredTileId);
 
   if (wasTurnSuccessful && conqueredTile) {
-    const winnerOfTurn = currentTurnPlayer;
     const loserOfTurn = winnerOfTurn === 'player1' ? 'player2' : 'player1';
       
     const isDuelWin = conqueredTile.owner === loserOfTurn;
@@ -310,7 +365,7 @@ export async function checkEndGame(gameId: string, wasTurnSuccessful: boolean, c
     player2: newBoard.filter(t => t.owner === 'player2').length,
   };
 
-  let winner: PlayerRole | 'draw' | null = null;
+  let winner: PlayerRole | 'draw' | undefined = undefined;
   let status: GameState['status'] = 'playing';
 
   if (newScores.player1 === 0 || newScores.player2 === 0 || newScores.player1 + newScores.player2 === newBoard.length) {
@@ -320,9 +375,9 @@ export async function checkEndGame(gameId: string, wasTurnSuccessful: boolean, c
       status = 'finished';
   }
   
-  const nextTurn = tileWasConquered ? currentTurnPlayer : (currentTurnPlayer === 'player1' ? 'player2' : 'player1');
+  const nextTurn = tileWasConquered ? winnerOfTurn : (gameState.turn === 'player1' ? 'player2' : 'player1');
 
-  await updateDoc(gameDocRef, {
+  return {
     board: newBoard,
     scores: newScores,
     turn: nextTurn,
@@ -330,5 +385,25 @@ export async function checkEndGame(gameId: string, wasTurnSuccessful: boolean, c
     status: status,
     activeQuestion: null,
     duelState: null,
-  });
+  };
+}
+
+// In case a player closes the modal or times out on their turn
+export async function endDuelForPlayer(gameId: string, player: PlayerRole) {
+    try {
+        await runTransaction(db, async (transaction) => {
+            const gameDocRef = doc(db, 'games', gameId);
+            const gameDoc = await transaction.get(gameDocRef);
+            if (!gameDoc.exists()) throw new Error("Game not found");
+            let gameState = gameDoc.data() as GameState;
+
+            if (gameState.status !== 'duel' || !gameState.duelState) return;
+            
+            // The player who closes the modal loses the duel
+            const challengerWon = gameState.duelState.challenger !== player;
+            transaction.update(gameDocRef, await checkEndGame(gameState, gameState.duelState.challenger, gameState.duelState.tile.id, challengerWon));
+        });
+    } catch(e) {
+        console.error(e);
+    }
 }

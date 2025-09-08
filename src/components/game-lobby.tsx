@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useState, Suspense, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,6 +33,18 @@ function SubmitButton({ pendingText, children }: { pendingText: string; children
 function CreateGameForm() {
     const [difficulty, setDifficulty] = useState<GameDifficulty>('easy');
     const [language, setLanguage] = useState('Portuguese');
+    const router = useRouter();
+
+    useEffect(() => {
+        const url = new URL(window.location.href);
+        const role = url.searchParams.get('role');
+        const gameId = url.pathname.split('/').pop();
+        if (role && gameId) {
+          sessionStorage.setItem(`tile-takeover-player-role-${gameId}`, role);
+          // Clean up URL
+          router.replace(`/play/multiplayer/${gameId}`);
+        }
+    }, [router]);
 
     return (
         <Card className="shadow-lg">
@@ -82,6 +94,19 @@ function CreateGameForm() {
 }
 
 function JoinGameForm({ error }: { error: string | null }) {
+    const router = useRouter();
+
+    useEffect(() => {
+        const url = new URL(window.location.href);
+        const role = url.searchParams.get('role');
+        const gameId = url.pathname.split('/').pop();
+        if (role && gameId) {
+          sessionStorage.setItem(`tile-takeover-player-role-${gameId}`, role);
+           // Clean up URL
+          router.replace(`/play/multiplayer/${gameId}`);
+        }
+    }, [router]);
+
     return (
         <Card className="shadow-lg">
             <CardHeader>
@@ -118,7 +143,7 @@ function JoinGameForm({ error }: { error: string | null }) {
     );
 }
 
-export function GameLobby() {
+function GameLobbyInternal() {
   const searchParams = useSearchParams();
   const error = searchParams.get('error');
 
@@ -138,4 +163,13 @@ export function GameLobby() {
       <JoinGameForm error={error} />
     </div>
   );
+}
+
+
+export function GameLobby() {
+    return (
+        <Suspense fallback={<div>A carregar lobby...</div>}>
+            <GameLobbyInternal />
+        </Suspense>
+    )
 }
