@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { GameLobby } from "@/components/game-lobby";
 
 function MultiplayerLobby() {
@@ -21,6 +22,11 @@ function MultiplayerLobby() {
     );
 }
 
+// Wrap with Suspense to read searchParams in a client component
 export default function MultiplayerLobbyPage() {
-    return <MultiplayerLobby />;
+    return (
+        <Suspense fallback={<div>A carregar...</div>}>
+            <MultiplayerLobby />
+        </Suspense>
+    );
 }
