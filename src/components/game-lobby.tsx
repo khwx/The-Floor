@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useActionState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,8 @@ import { createGameSession, joinGameSession } from '@/lib/actions';
 import { useFormStatus } from 'react-dom';
 import { Loader2, Play, Users } from 'lucide-react';
 import type { GameDifficulty } from '@/lib/types';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { XCircle } from 'lucide-react';
 
 function SubmitButton({ text, loadingText, icon }: { text: string; loadingText: string; icon: React.ReactNode }) {
   const { pending } = useFormStatus();
@@ -31,23 +33,9 @@ function SubmitButton({ text, loadingText, icon }: { text: string; loadingText: 
   );
 }
 
-const initialState = {
-    error: null,
-    success: false,
-    gameId: null,
-};
-
 function CreateGameForm() {
-    const router = useRouter();
     const [difficulty, setDifficulty] = useState<GameDifficulty>('easy');
     const [language, setLanguage] = useState('Portuguese');
-    const [state, formAction] = useActionState(createGameSession, initialState);
-
-    useEffect(() => {
-        if (state.success && state.gameId) {
-            router.push(`/play/multiplayer/${state.gameId}`);
-        }
-    }, [state, router]);
 
     return (
         <Card className="shadow-lg">
@@ -56,7 +44,7 @@ function CreateGameForm() {
                 <CardDescription>Crie uma nova sala de jogo e convide um amigo para jogar.</CardDescription>
             </CardHeader>
             <CardContent>
-                <form action={formAction} className="space-y-4">
+                <form action={createGameSession} className="space-y-4">
                     <div className="space-y-2">
                         <Label htmlFor="difficulty-create">Dificuldade</Label>
                         <Select name="difficulty" onValueChange={(value: GameDifficulty) => setDifficulty(value)} value={difficulty}>
@@ -86,9 +74,6 @@ function CreateGameForm() {
                             </SelectContent>
                         </Select>
                     </div>
-                    {state?.error && (
-                        <p className="text-sm font-medium text-destructive">{state.error}</p>
-                    )}
                     <SubmitButton text="Criar Jogo" loadingText="A criar..." icon={<Users className="mr-2 h-5 w-5"/>} />
                 </form>
             </CardContent>
@@ -97,15 +82,6 @@ function CreateGameForm() {
 }
 
 function JoinGameForm() {
-    const router = useRouter();
-    const [state, formAction] = useActionState(joinGameSession, initialState);
-
-     useEffect(() => {
-        if (state.success && state.gameId) {
-            router.push(`/play/multiplayer/${state.gameId}`);
-        }
-    }, [state, router]);
-
     return (
         <Card className="shadow-lg">
             <CardHeader>
@@ -113,7 +89,7 @@ function JoinGameForm() {
                 <CardDescription>Tem um código de jogo? Insira-o abaixo para se juntar.</CardDescription>
             </CardHeader>
             <CardContent>
-                <form action={formAction} className="space-y-4">
+                <form action={joinGameSession} className="space-y-4">
                     <div className="space-y-2">
                         <Label htmlFor="gameId">Código do Jogo</Label>
                         <Input
@@ -125,9 +101,6 @@ function JoinGameForm() {
                             className="text-center tracking-[0.5em] uppercase text-lg font-bold"
                         />
                     </div>
-                    {state?.error && (
-                        <p className="text-sm font-medium text-destructive">{state.error}</p>
-                    )}
                     <SubmitButton text="Entrar no Jogo" loadingText="A entrar..." icon={<Play className="mr-2 h-5 w-5"/>} />
                 </form>
             </CardContent>
@@ -135,9 +108,25 @@ function JoinGameForm() {
     );
 }
 
+function ErrorMessage() {
+    const searchParams = useSearchParams();
+    const error = searchParams.get('error');
+
+    if (!error) return null;
+
+    return (
+         <Alert variant="destructive" className="mb-6">
+            <XCircle className="h-4 w-4" />
+            <AlertTitle>Erro</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+        </Alert>
+    )
+}
+
 export function GameLobby() {
   return (
     <div className="space-y-6">
+      <ErrorMessage />
       <CreateGameForm />
       
       <div className="relative">
