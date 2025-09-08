@@ -1,21 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { createGameSession, joinGameSession } from '@/lib/actions';
-import { useFormStatus } from 'react-dom';
-import { Loader2, Play, Users } from 'lucide-react';
+import { Loader2, Play, Users, XCircle } from 'lucide-react';
 import type { GameDifficulty } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
-import { XCircle } from 'lucide-react';
 
-function SubmitButton({ text, loadingText, icon }: { text: string; loadingText: string; icon: React.ReactNode }) {
-  const { pending } = useFormStatus();
+function SubmitButton({ pending, text, loadingText, icon }: { pending: boolean; text: string; loadingText: string; icon: React.ReactNode }) {
   return (
     <Button type="submit" className="w-full" size="lg" disabled={pending}>
       {pending ? (
@@ -34,8 +31,26 @@ function SubmitButton({ text, loadingText, icon }: { text: string; loadingText: 
 }
 
 function CreateGameForm() {
+    const router = useRouter();
     const [difficulty, setDifficulty] = useState<GameDifficulty>('easy');
     const [language, setLanguage] = useState('Portuguese');
+    const [pending, setPending] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setPending(true);
+        setError(null);
+        const formData = new FormData(event.currentTarget);
+        const result = await createGameSession(formData);
+        
+        if (result.success) {
+            router.push(`/play/multiplayer/${result.gameId}`);
+        } else {
+            setError(result.error);
+            setPending(false);
+        }
+    };
 
     return (
         <Card className="shadow-lg">
@@ -44,10 +59,17 @@ function CreateGameForm() {
                 <CardDescription>Crie uma nova sala de jogo e convide um amigo para jogar.</CardDescription>
             </CardHeader>
             <CardContent>
-                <form action={createGameSession} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    {error && (
+                        <Alert variant="destructive">
+                            <XCircle className="h-4 w-4" />
+                            <AlertTitle>Erro</AlertTitle>
+                            <AlertDescription>{error}</AlertDescription>
+                        </Alert>
+                    )}
                     <div className="space-y-2">
                         <Label htmlFor="difficulty-create">Dificuldade</Label>
-                        <Select name="difficulty" onValueChange={(value: GameDifficulty) => setDifficulty(value)} value={difficulty}>
+                        <Select name="difficulty" onValueChange={(value: GameDifficulty) => setDifficulty(value)} value={difficulty} disabled={pending}>
                             <SelectTrigger id="difficulty-create">
                                 <SelectValue placeholder="Selecione a dificuldade" />
                             </SelectTrigger>
@@ -61,7 +83,7 @@ function CreateGameForm() {
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="language-create">Idioma</Label>
-                        <Select name="language" onValueChange={(value: string) => setLanguage(value)} value={language}>
+                        <Select name="language" onValueChange={(value: string) => setLanguage(value)} value={language} disabled={pending}>
                             <SelectTrigger id="language-create">
                                 <SelectValue placeholder="Selecione o idioma" />
                             </SelectTrigger>
@@ -74,7 +96,7 @@ function CreateGameForm() {
                             </SelectContent>
                         </Select>
                     </div>
-                    <SubmitButton text="Criar Jogo" loadingText="A criar..." icon={<Users className="mr-2 h-5 w-5"/>} />
+                    <SubmitButton pending={pending} text="Criar Jogo" loadingText="A criar..." icon={<Users className="mr-2 h-5 w-5"/>} />
                 </form>
             </CardContent>
         </Card>
@@ -82,6 +104,25 @@ function CreateGameForm() {
 }
 
 function JoinGameForm() {
+    const router = useRouter();
+    const [pending, setPending] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setPending(true);
+        setError(null);
+        const formData = new FormData(event.currentTarget);
+        const result = await joinGameSession(formData);
+        
+        if (result.success) {
+            router.push(`/play/multiplayer/${result.gameId}`);
+        } else {
+            setError(result.error);
+            setPending(false);
+        }
+    };
+
     return (
         <Card className="shadow-lg">
             <CardHeader>
@@ -89,7 +130,14 @@ function JoinGameForm() {
                 <CardDescription>Tem um código de jogo? Insira-o abaixo para se juntar.</CardDescription>
             </CardHeader>
             <CardContent>
-                <form action={joinGameSession} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                     {error && (
+                        <Alert variant="destructive">
+                            <XCircle className="h-4 w-4" />
+                            <AlertTitle>Erro</AlertTitle>
+                            <AlertDescription>{error}</AlertDescription>
+                        </Alert>
+                    )}
                     <div className="space-y-2">
                         <Label htmlFor="gameId">Código do Jogo</Label>
                         <Input
@@ -98,35 +146,20 @@ function JoinGameForm() {
                             placeholder="ABCDEF"
                             maxLength={6}
                             required
+                            disabled={pending}
                             className="text-center tracking-[0.5em] uppercase text-lg font-bold"
                         />
                     </div>
-                    <SubmitButton text="Entrar no Jogo" loadingText="A entrar..." icon={<Play className="mr-2 h-5 w-5"/>} />
+                    <SubmitButton pending={pending} text="Entrar no Jogo" loadingText="A entrar..." icon={<Play className="mr-2 h-5 w-5"/>} />
                 </form>
             </CardContent>
         </Card>
     );
 }
 
-function ErrorMessage() {
-    const searchParams = useSearchParams();
-    const error = searchParams.get('error');
-
-    if (!error) return null;
-
-    return (
-         <Alert variant="destructive" className="mb-6">
-            <XCircle className="h-4 w-4" />
-            <AlertTitle>Erro</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-        </Alert>
-    )
-}
-
 export function GameLobby() {
   return (
     <div className="space-y-6">
-      <ErrorMessage />
       <CreateGameForm />
       
       <div className="relative">

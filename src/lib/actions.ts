@@ -5,7 +5,6 @@ import { generateQuestion as generateQuestionFlow } from '@/ai/flows/generate-qu
 import type { GameDifficulty, Territory, Question, GameState, PlayerRole, TileData } from './types';
 import { db } from './firebase';
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
-import { redirect } from 'next/navigation';
 
 export async function generateFloor(
   difficulty: GameDifficulty,
@@ -102,14 +101,13 @@ function generateGameId(length = 6) {
   return result;
 }
 
-
 export async function createGameSession(formData: FormData) {
   const difficulty = formData.get('difficulty') as GameDifficulty;
   const language = formData.get('language') as string;
   const gameId = generateGameId();
 
   if (!difficulty || !language) {
-      return redirect('/play/multiplayer?error=Dificuldade+e+idioma+sao+obrigatorios');
+      return { success: false, error: 'Dificuldade e idioma são obrigatórios.' };
   }
 
   const initialGameState: Partial<GameState> = {
@@ -127,20 +125,19 @@ export async function createGameSession(formData: FormData) {
 
   try {
     await setDoc(doc(db, 'games', gameId), initialGameState);
+    return { success: true, gameId };
   } catch (error) {
     console.error("Failed to create game session in Firestore:", error);
     const errorMessage = error instanceof Error ? error.message : 'Could not create game in database.';
-    return redirect(`/play/multiplayer?error=${encodeURIComponent(errorMessage)}`);
+    return { success: false, error: errorMessage };
   }
-
-  redirect(`/play/multiplayer/${gameId}`);
 }
 
 export async function joinGameSession(formData: FormData) {
     const gameId = (formData.get('gameId') as string)?.toUpperCase();
 
     if (!gameId || gameId.length !== 6) {
-        return redirect('/play/multiplayer?error=Codigo+de+jogo+invalido');
+        return { success: false, error: 'Código de jogo inválido.' };
     }
 
     const gameDocRef = doc(db, 'games', gameId);
@@ -149,25 +146,23 @@ export async function joinGameSession(formData: FormData) {
       const gameDoc = await getDoc(gameDocRef);
 
       if (!gameDoc.exists()) {
-          return redirect('/play/multiplayer?error=Jogo+nao+encontrado');
+          return { success: false, error: 'Jogo não encontrado.' };
       }
 
       const gameState = gameDoc.data() as GameState;
 
       if (gameState.players.player2) {
-          return redirect('/play/multiplayer?error=Este+jogo+ja+esta+cheio');
+          return { success: false, error: 'Este jogo já está cheio.' };
       }
       if (gameState.status !== 'waiting') {
-        return redirect('/play/multiplayer?error=Este+jogo+ja+comecou+ou+terminou');
+        return { success: false, error: 'Este jogo já começou ou terminou.' };
       }
       
-      // Add player 2 and start the game
       await updateDoc(gameDocRef, {
-        'players.player2': 'player2_id', // This would be the actual user ID
+        'players.player2': 'player2_id', 
         'status': 'generating'
       });
 
-      // Generate the floor in the background
       generateFloor(gameState.difficulty, gameState.language).then(floorResult => {
           if('error' in floorResult) {
             console.error(`Failed to generate floor for game ${gameId}: ${floorResult.error}`);
@@ -190,14 +185,14 @@ export async function joinGameSession(formData: FormData) {
             status: 'playing',
           });
       });
+      
+      return { success: true, gameId };
 
     } catch (error) {
        console.error("Failed to join game session in Firestore:", error);
        const errorMessage = error instanceof Error ? error.message : 'Could not join game in database.';
-       return redirect(`/play/multiplayer?error=${encodeURIComponent(errorMessage)}`);
+       return { success: false, error: errorMessage };
     }
-
-    redirect(`/play/multiplayer/${gameId}`);
 }
 
 

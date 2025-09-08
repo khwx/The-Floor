@@ -1,7 +1,6 @@
 'use client';
 
 import { GameLobby } from "@/components/game-lobby";
-import { Suspense } from "react";
 
 function MultiplayerLobby() {
     return (
@@ -22,11 +21,6 @@ function MultiplayerLobby() {
     );
 }
 
-
 export default function MultiplayerLobbyPage() {
-    return (
-        <Suspense fallback={<div>A carregar...</div>}>
-            <MultiplayerLobby />
-        </Suspense>
-    )
+    return <MultiplayerLobby />;
 }
