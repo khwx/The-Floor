@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useActionState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { createGameSession, joinGameSession } from '@/lib/actions';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
 import { Loader2, Play, Users } from 'lucide-react';
 import type { GameDifficulty } from '@/lib/types';
 
@@ -33,7 +33,7 @@ function SubmitButton({ text, loadingText, icon }: { text: string; loadingText: 
 function CreateGameForm() {
     const [difficulty, setDifficulty] = useState<GameDifficulty>('easy');
     const [language, setLanguage] = useState('Portuguese');
-    const [state, formAction] = useFormState(createGameSession, { error: null });
+    const [state, formAction] = useActionState(createGameSession, { error: null });
 
     return (
         <Card className="shadow-lg">
@@ -83,7 +83,7 @@ function CreateGameForm() {
 }
 
 function JoinGameForm() {
-    const [state, formAction] = useFormState(joinGameSession, { error: null });
+    const [state, formAction] = useActionState(joinGameSession, { error: null });
 
     return (
         <Card className="shadow-lg">
