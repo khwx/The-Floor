@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { createGameSession, joinGameSession } from '@/lib/actions';
-import { useFormStatus } from 'react-dom';
+import { useFormState, useFormStatus } from 'react-dom';
 import { Loader2, Play, Users } from 'lucide-react';
 import type { GameDifficulty } from '@/lib/types';
 
@@ -33,14 +33,7 @@ function SubmitButton({ text, loadingText, icon }: { text: string; loadingText: 
 function CreateGameForm() {
     const [difficulty, setDifficulty] = useState<GameDifficulty>('easy');
     const [language, setLanguage] = useState('Portuguese');
-    const [error, setError] = useState<string | null>(null);
-
-    const handleSubmit = async (formData: FormData) => {
-        const result = await createGameSession(null, formData);
-        if (result?.error) {
-            setError(result.error);
-        }
-    }
+    const [state, formAction] = useFormState(createGameSession, { error: null });
 
     return (
         <Card className="shadow-lg">
@@ -49,7 +42,7 @@ function CreateGameForm() {
                 <CardDescription>Crie uma nova sala de jogo e convide um amigo para jogar.</CardDescription>
             </CardHeader>
             <CardContent>
-                <form action={handleSubmit} className="space-y-4">
+                <form action={formAction} className="space-y-4">
                     <div className="space-y-2">
                         <Label htmlFor="difficulty-create">Dificuldade</Label>
                         <Select name="difficulty" onValueChange={(value: GameDifficulty) => setDifficulty(value)} value={difficulty}>
@@ -79,8 +72,8 @@ function CreateGameForm() {
                             </SelectContent>
                         </Select>
                     </div>
-                    {error && (
-                        <p className="text-sm font-medium text-destructive">{error}</p>
+                    {state?.error && (
+                        <p className="text-sm font-medium text-destructive">{state.error}</p>
                     )}
                     <SubmitButton text="Criar Jogo" loadingText="A criar..." icon={<Users className="mr-2 h-5 w-5"/>} />
                 </form>
@@ -90,14 +83,7 @@ function CreateGameForm() {
 }
 
 function JoinGameForm() {
-    const [error, setError] = useState<string | null>(null);
-
-    const handleSubmit = async (formData: FormData) => {
-        const result = await joinGameSession(null, formData);
-        if (result?.error) {
-            setError(result.error);
-        }
-    }
+    const [state, formAction] = useFormState(joinGameSession, { error: null });
 
     return (
         <Card className="shadow-lg">
@@ -106,7 +92,7 @@ function JoinGameForm() {
                 <CardDescription>Tem um código de jogo? Insira-o abaixo para se juntar.</CardDescription>
             </CardHeader>
             <CardContent>
-                <form action={handleSubmit} className="space-y-4">
+                <form action={formAction} className="space-y-4">
                     <div className="space-y-2">
                         <Label htmlFor="gameId">Código do Jogo</Label>
                         <Input
@@ -118,8 +104,8 @@ function JoinGameForm() {
                             className="text-center tracking-[0.5em] uppercase text-lg font-bold"
                         />
                     </div>
-                    {error && (
-                        <p className="text-sm font-medium text-destructive">{error}</p>
+                    {state?.error && (
+                        <p className="text-sm font-medium text-destructive">{state.error}</p>
                     )}
                     <SubmitButton text="Entrar no Jogo" loadingText="A entrar..." icon={<Play className="mr-2 h-5 w-5"/>} />
                 </form>
