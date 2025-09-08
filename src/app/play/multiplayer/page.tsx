@@ -1,9 +1,28 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
 import { GameLobby } from "@/components/game-lobby";
+import { useRouter } from 'next/navigation';
 
 function MultiplayerLobby() {
+    const router = useRouter();
+
+    useEffect(() => {
+        // This effect is specifically for handling the player role setting after redirection
+        // from a create/join action. It should be safe here.
+        const url = new URL(window.location.href);
+        const role = url.searchParams.get('role');
+        const gameId = url.pathname.split('/').pop();
+        
+        if (role && gameId) {
+          sessionStorage.setItem(`tile-takeover-player-role-${gameId}`, role);
+          // Clean up URL to prevent this from running again on refresh
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.delete('role');
+          router.replace(newUrl.pathname + newUrl.search, { scroll: false });
+        }
+    }, [router]);
+
     return (
         <main className="flex min-h-screen flex-col items-center justify-center p-8 bg-gradient-to-br from-background to-secondary">
             <div className="text-center mb-12">

@@ -33,18 +33,6 @@ function SubmitButton({ pendingText, children }: { pendingText: string; children
 function CreateGameForm() {
     const [difficulty, setDifficulty] = useState<GameDifficulty>('easy');
     const [language, setLanguage] = useState('Portuguese');
-    const router = useRouter();
-
-    useEffect(() => {
-        const url = new URL(window.location.href);
-        const role = url.searchParams.get('role');
-        const gameId = url.pathname.split('/').pop();
-        if (role && gameId) {
-          sessionStorage.setItem(`tile-takeover-player-role-${gameId}`, role);
-          // Clean up URL
-          router.replace(`/play/multiplayer/${gameId}`);
-        }
-    }, [router]);
 
     return (
         <Card className="shadow-lg">
@@ -94,19 +82,6 @@ function CreateGameForm() {
 }
 
 function JoinGameForm({ error }: { error: string | null }) {
-    const router = useRouter();
-
-    useEffect(() => {
-        const url = new URL(window.location.href);
-        const role = url.searchParams.get('role');
-        const gameId = url.pathname.split('/').pop();
-        if (role && gameId) {
-          sessionStorage.setItem(`tile-takeover-player-role-${gameId}`, role);
-           // Clean up URL
-          router.replace(`/play/multiplayer/${gameId}`);
-        }
-    }, [router]);
-
     return (
         <Card className="shadow-lg">
             <CardHeader>
@@ -145,7 +120,27 @@ function JoinGameForm({ error }: { error: string | null }) {
 
 function GameLobbyInternal() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const error = searchParams.get('error');
+
+  useEffect(() => {
+    // This effect handles setting the player role in sessionStorage
+    // after a redirect from create/join actions.
+    const url = new URL(window.location.href);
+    const role = url.searchParams.get('role');
+    const gameId = url.pathname.split('/').pop();
+
+    if (role && gameId) {
+      // The role param exists, so we are coming from a successful create/join.
+      // Set the role in session storage.
+      sessionStorage.setItem(`tile-takeover-player-role-${gameId}`, role);
+
+      // Clean up the URL by removing the role search param.
+      // This prevents the logic from re-running on refresh.
+      url.searchParams.delete('role');
+      router.replace(url.pathname + url.search, { scroll: false });
+    }
+  }, [router, searchParams]);
 
   return (
     <div className="space-y-6">
