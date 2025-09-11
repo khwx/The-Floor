@@ -11,7 +11,6 @@ import { createGameSession, joinGameSession } from '@/lib/actions';
 import { Loader2, Play, Users, XCircle } from 'lucide-react';
 import type { GameDifficulty } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
-import { Suspense } from 'react';
 
 function SubmitButton({ pendingText, children }: { pendingText: string; children: React.ReactNode }) {
   const { pending } = useFormStatus();
