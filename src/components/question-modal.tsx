@@ -10,7 +10,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import type { TileData, Question, MultiplayerDuelState, PlayerRole } from '@/lib/types';
+import type { TileData, Question, MultiplayerDuelState, PlayerRole, DuelState } from '@/lib/types';
 import { getIconForTheme } from './icons';
 import { Loader2, Swords, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -22,8 +22,8 @@ type QuestionModalProps = {
   question: Question | null;
   onAnswer: (correct: boolean) => void;
   onClose: () => void;
-  duel: MultiplayerDuelState | null;
-  currentPlayer: PlayerRole | null;
+  duel: MultiplayerDuelState | DuelState | null;
+  currentPlayer: PlayerRole | 'player' | null;
 };
 
 export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel, currentPlayer }: QuestionModalProps) {
@@ -49,9 +49,11 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel,
   
   // Determine if the current player has already answered the current question in a duel
   useEffect(() => {
-      if (duel && currentPlayer && question) {
-          const currentAnswers = duel.answers[duel.activeQuestionIndex];
-          if (currentAnswers && currentAnswers[currentPlayer] !== undefined) {
+      // This logic is only for multiplayer duels
+      if (duel && 'answers' in duel && currentPlayer && question) {
+          const mpDuel = duel as MultiplayerDuelState;
+          const currentAnswers = mpDuel.answers[mpDuel.activeQuestionIndex];
+          if (currentAnswers && currentAnswers[currentPlayer as PlayerRole] !== undefined) {
               setIsAnswered(true);
           } else {
               setIsAnswered(false);
@@ -80,7 +82,7 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel,
     if (!isAnswered) return '';
 
     // If it's a duel, we don't flash answers until both have answered, which happens on the next state update.
-    if (duel) return 'opacity-50';
+    if (duel && 'answers' in duel) return 'opacity-50';
 
     if (option === question?.answer) return 'animate-flash-green';
     if (option === selectedOption && option !== question?.answer) return 'animate-flash-red';
@@ -88,24 +90,29 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel,
   }
   
   const isDuel = !!duel;
-  let duelTurnPlayer: PlayerRole | string = 'Ambos';
+  const isMultiplayerDuel = isDuel && 'answers' in duel;
   
   const playerDisplayName = {
+      player: 'Jogador',
       player1: 'Jogador 1',
       player2: 'Jogador 2'
-  }
+  } as const;
 
-  let description = `Vez do ${currentPlayer === 'player1' ? playerDisplayName.player1 : playerDisplayName.player2}. Responda à pergunta para conquistar a casa.`;
-  if (isDuel) {
-      const answersForThisQuestion = duel.answers[duel.activeQuestionIndex] || {};
+  let description = `Vez do ${playerDisplayName[currentPlayer as keyof typeof playerDisplayName] || 'Jogador'}. Responda à pergunta para conquistar a casa.`;
+  
+  if (isMultiplayerDuel) {
+      const mpDuel = duel as MultiplayerDuelState;
+      const answersForThisQuestion = mpDuel.answers[mpDuel.activeQuestionIndex] || {};
       const answeredPlayers = Object.keys(answersForThisQuestion);
-      if (answeredPlayers.length === 0) {
-          duelTurnPlayer = 'Ambos os jogadores';
-      } else if (answeredPlayers.length === 1) {
+      let duelTurnPlayer = 'Ambos os jogadores';
+      if (answeredPlayers.length === 1) {
           const waitingForPlayer = answeredPlayers[0] === 'player1' ? 'player2' : 'player1';
           duelTurnPlayer = `A aguardar pelo ${playerDisplayName[waitingForPlayer]}`;
       }
        description = `Tema: "${tile.theme}". ${duelTurnPlayer}.`;
+  } else if (isDuel) {
+      const spDuel = duel as DuelState;
+      description = `Duelo! Responda a ${spDuel.questions.length} perguntas. Tempo restante: ${spDuel.timeRemaining}s`;
   }
 
 
@@ -117,7 +124,7 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel,
             <div className="flex justify-between items-center">
               <DialogTitle className="flex items-center gap-2 text-2xl">
                 <Swords className="h-6 w-6 text-primary" />
-                <span>Duelo! ({duel.activeQuestionIndex + 1}/{duel.questions.length})</span>
+                <span>Duelo! ({isMultiplayerDuel ? (duel as MultiplayerDuelState).activeQuestionIndex + 1 : (duel as DuelState).activeQuestionIndex + 1}/{isMultiplayerDuel ? (duel as MultiplayerDuelState).questions.length : (duel as DuelState).questions.length})</span>
               </DialogTitle>
               <div className="flex items-center gap-2 text-2xl font-bold text-primary">
                 <Clock className="h-6 w-6" />
