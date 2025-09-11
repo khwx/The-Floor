@@ -3,3 +3,4 @@ config();
 
 import '@/ai/flows/generate-themed-floor.ts';
 import '@/ai/flows/generate-question.ts';
+import '@/ai/flows/generate-multiple-questions.ts';

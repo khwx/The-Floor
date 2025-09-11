@@ -1,7 +1,8 @@
 'use server';
 
 import { generateThemedFloor } from '@/ai/flows/generate-themed-floor';
-import { generateQuestion as generateQuestionFlow } from '@/ai/flows/generate-question';
+import { generateQuestion as generateSingleQuestionFlow, type GenerateQuestionOutput } from '@/ai/flows/generate-question';
+import { generateMultipleQuestions as generateMultipleQuestionsFlow } from '@/ai/flows/generate-multiple-questions';
 import type { GameDifficulty, Territory, Question, GameState, PlayerRole, TileData } from './types';
 import { db } from './firebase';
 import { doc, setDoc, getDoc, updateDoc, runTransaction } from 'firebase/firestore';
@@ -32,10 +33,21 @@ async function generateQuestionsWithImages(
   count: number = 1
 ): Promise<Question[] | { error: string }> {
   try {
-    const questionPromises = Array.from({ length: count }, () => generateQuestionFlow({ theme, language }));
-    const results = await Promise.all(questionPromises);
+    let questionResults: GenerateQuestionOutput[];
 
-    const questionsWithImages = await Promise.all(results.map(async (result) => {
+    if (count > 1) {
+      const result = await generateMultipleQuestionsFlow({ theme, language, count });
+      questionResults = result.questions;
+    } else {
+      const result = await generateSingleQuestionFlow({ theme, language });
+      questionResults = [result];
+    }
+    
+    if (!questionResults || questionResults.length === 0) {
+      return { error: 'AI failed to generate questions.' };
+    }
+
+    const questionsWithImages = await Promise.all(questionResults.map(async (result) => {
       const imageResult = await getImageForQuery(result.imageQuery);
       let imageUrl: string | undefined = undefined;
       if ('url' in imageResult) {
