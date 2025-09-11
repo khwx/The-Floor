@@ -5,10 +5,8 @@ import { GameLobby } from "@/components/game-lobby";
 import { useSearchParams } from 'next/navigation';
 
 function MultiplayerLobby() {
-    // O erro do joinGame agora é gerido no estado do componente GameLobby,
-    // mas deixamos isto para o caso de precisarmos de ler outros parâmetros no futuro.
     const searchParams = useSearchParams();
-    const initialJoinError = searchParams.get('error');
+    const joinError = searchParams.get('error');
 
     return (
         <main className="flex min-h-screen flex-col items-center justify-center p-8 bg-gradient-to-br from-background to-secondary">
@@ -22,13 +20,14 @@ function MultiplayerLobby() {
             </div>
 
             <div className="w-full max-w-md mx-auto">
-                <GameLobby initialJoinError={initialJoinError} />
+                <GameLobby initialJoinError={joinError} />
             </div>
         </main>
     );
 }
 
 export default function MultiplayerLobbyPage() {
+    // Wrap with Suspense because useSearchParams() needs it.
     return (
         <Suspense fallback={<div>A carregar...</div>}>
             <MultiplayerLobby />
