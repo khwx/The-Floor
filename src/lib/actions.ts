@@ -78,7 +78,7 @@ export async function getImageForQuery(query: string): Promise<{ url: string } |
   }
 
   try {
-    const response = await fetch(`https://pixabay.com/api/?key=${accessKey}&q=${encodeURIComponent(query)}&image_type=photo&orientation=horizontal&per_page=5`);
+    const response = await fetch(`https://pixabay.com/api/?key=${accessKey}&q=${encodeURIComponent(query)}&image_type=photo&orientation=horizontal&per_page=5&safesearch=true`);
 
     if (!response.ok) {
       const errorData = await response.text();
