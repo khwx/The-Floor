@@ -17,19 +17,21 @@ function CreateGameForm() {
     const [difficulty, setDifficulty] = useState<GameDifficulty>('easy');
     const [language, setLanguage] = useState('Portuguese');
     const [pending, setPending] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setPending(true);
+        setError(null);
 
         const formData = new FormData(event.currentTarget);
         const result = await createGameSession(formData);
 
         if (result.success && result.gameId) {
-            router.push(`/play/multiplayer/${result.gameId}?role=player1`);
+            sessionStorage.setItem(`tile-takeover-player-role-${result.gameId}`, 'player1');
+            router.push(`/play/multiplayer/${result.gameId}`);
         } else {
-            // In a real app, you might want to show an error toast here
-            console.error(result.error);
+            setError(result.error || 'Ocorreu um erro desconhecido.');
             setPending(false);
         }
     };
@@ -42,6 +44,13 @@ function CreateGameForm() {
             </CardHeader>
             <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
+                     {error && (
+                        <Alert variant="destructive">
+                            <XCircle className="h-4 w-4" />
+                            <AlertTitle>Erro ao Criar Jogo</AlertTitle>
+                            <AlertDescription>{error}</AlertDescription>
+                        </Alert>
+                    )}
                     <div className="space-y-2">
                         <Label htmlFor="difficulty-create">Dificuldade</Label>
                         <Select name="difficulty" onValueChange={(value: GameDifficulty) => setDifficulty(value)} value={difficulty}>
@@ -90,8 +99,27 @@ function CreateGameForm() {
     );
 }
 
-function JoinGameForm({ error }: { error: string | null }) {
+function JoinGameForm({ initialError }: { initialError: string | null }) {
+    const router = useRouter();
     const [pending, setPending] = useState(false);
+    const [error, setError] = useState<string | null>(initialError);
+
+    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setPending(true);
+        setError(null);
+
+        const formData = new FormData(event.currentTarget);
+        const result = await joinGameSession(formData);
+        
+        if (result.success && result.gameId) {
+            sessionStorage.setItem(`tile-takeover-player-role-${result.gameId}`, 'player2');
+            router.push(`/play/multiplayer/${result.gameId}`);
+        } else {
+            setError(result.error || 'Ocorreu um erro desconhecido.');
+            setPending(false);
+        }
+    }
 
     return (
         <Card className="shadow-lg">
@@ -100,11 +128,11 @@ function JoinGameForm({ error }: { error: string | null }) {
                 <CardDescription>Tem um código de jogo? Insira-o abaixo para se juntar.</CardDescription>
             </CardHeader>
             <CardContent>
-                <form action={joinGameSession} className="space-y-4" onSubmit={() => setPending(true)}>
+                <form onSubmit={handleSubmit} className="space-y-4">
                      {error && (
                         <Alert variant="destructive">
                             <XCircle className="h-4 w-4" />
-                            <AlertTitle>Erro</AlertTitle>
+                            <AlertTitle>Erro ao Entrar no Jogo</AlertTitle>
                             <AlertDescription>{error}</AlertDescription>
                         </Alert>
                     )}
@@ -138,7 +166,7 @@ function JoinGameForm({ error }: { error: string | null }) {
     );
 }
 
-export function GameLobby({ joinError }: { joinError: string | null }) {
+export function GameLobby({ initialJoinError }: { initialJoinError: string | null }) {
   return (
     <div className="space-y-6">
       <CreateGameForm />
@@ -152,7 +180,7 @@ export function GameLobby({ joinError }: { joinError: string | null }) {
           </div>
       </div>
 
-      <JoinGameForm error={joinError} />
+      <JoinGameForm initialError={initialJoinError} />
     </div>
   );
 }

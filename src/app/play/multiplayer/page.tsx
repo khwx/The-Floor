@@ -1,32 +1,14 @@
 'use client';
 
-import { Suspense, useEffect } from 'react';
+import { Suspense } from 'react';
 import { GameLobby } from "@/components/game-lobby";
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 
 function MultiplayerLobby() {
-    const router = useRouter();
+    // O erro do joinGame agora é gerido no estado do componente GameLobby,
+    // mas deixamos isto para o caso de precisarmos de ler outros parâmetros no futuro.
     const searchParams = useSearchParams();
-    const joinError = searchParams.get('error');
-
-    useEffect(() => {
-        // This effect is specifically for handling the player role setting after redirection
-        // from a create/join action.
-        const role = searchParams.get('role');
-        
-        if (role) {
-            const pathParts = window.location.pathname.split('/');
-            const gameId = pathParts[pathParts.length - 1];
-            if (gameId && gameId !== 'multiplayer') {
-                sessionStorage.setItem(`tile-takeover-player-role-${gameId}`, role);
-                
-                // Clean up URL to prevent this from running again on refresh
-                const newUrl = new URL(window.location.href);
-                newUrl.searchParams.delete('role');
-                router.replace(newUrl.pathname + newUrl.search, { scroll: false });
-            }
-        }
-    }, [router, searchParams]);
+    const initialJoinError = searchParams.get('error');
 
     return (
         <main className="flex min-h-screen flex-col items-center justify-center p-8 bg-gradient-to-br from-background to-secondary">
@@ -40,7 +22,7 @@ function MultiplayerLobby() {
             </div>
 
             <div className="w-full max-w-md mx-auto">
-                <GameLobby joinError={joinError} />
+                <GameLobby initialJoinError={initialJoinError} />
             </div>
         </main>
     );

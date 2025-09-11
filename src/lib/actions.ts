@@ -1,11 +1,10 @@
 'use server';
 
-import { redirect } from 'next/navigation';
 import { generateThemedFloor } from '@/ai/flows/generate-themed-floor';
 import { generateQuestion as generateQuestionFlow } from '@/ai/flows/generate-question';
 import type { GameDifficulty, Territory, Question, GameState, PlayerRole, TileData } from './types';
 import { db } from './firebase';
-import { doc, setDoc, getDoc, updateDoc, runTransaction, writeBatch } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, runTransaction } from 'firebase/firestore';
 
 export async function generateFloor(
   difficulty: GameDifficulty,
@@ -138,12 +137,11 @@ export async function createGameSession(formData: FormData): Promise<{success: b
   }
 }
 
-export async function joinGameSession(formData: FormData) {
+export async function joinGameSession(formData: FormData): Promise<{success: boolean; gameId?: string; error?: string}> {
     const gameId = (formData.get('gameId') as string)?.toUpperCase();
-    const lobbyUrl = '/play/multiplayer';
 
     if (!gameId || gameId.length !== 6) {
-        redirect(`${lobbyUrl}?error=${encodeURIComponent('Código de jogo inválido.')}`);
+        return { success: false, error: 'Código de jogo inválido.' };
     }
 
     const gameDocRef = doc(db, 'games', gameId);
@@ -152,25 +150,23 @@ export async function joinGameSession(formData: FormData) {
       const gameDoc = await getDoc(gameDocRef);
 
       if (!gameDoc.exists()) {
-          redirect(`${lobbyUrl}?error=${encodeURIComponent('Jogo não encontrado.')}`);
+          return { success: false, error: 'Jogo não encontrado.' };
       }
 
       const gameState = gameDoc.data() as GameState;
 
       if (gameState.players.player2) {
-          redirect(`${lobbyUrl}?error=${encodeURIComponent('Este jogo já está cheio.')}`);
+          return { success: false, error: 'Este jogo já está cheio.' };
       }
       if (gameState.status !== 'waiting') {
-        redirect(`${lobbyUrl}?error=${encodeURIComponent('Este jogo já começou ou terminou.')}`);
+        return { success: false, error: 'Este jogo já começou ou terminou.' };
       }
       
-      // Reserve the spot
       await updateDoc(gameDocRef, {
-        'players.player2': 'player2_id_joining', // Placeholder to prevent race conditions
+        'players.player2': 'player2_id_joining',
         'status': 'generating'
       });
 
-      // Generate the floor in the background
       generateFloor(gameState.difficulty, gameState.language).then(async floorResult => {
           if('error' in floorResult) {
             console.error(`Failed to generate floor for game ${gameId}: ${floorResult.error}`);
@@ -191,7 +187,7 @@ export async function joinGameSession(formData: FormData) {
             board: initialBoard,
             scores: { player1: 1, player2: 1 },
             status: 'playing',
-            'players.player2': 'player2_id', // Finalize player 2 join
+            'players.player2': 'player2_id',
           });
       }).catch(async (e) => {
           console.error("Error during board generation promise:", e);
@@ -199,14 +195,12 @@ export async function joinGameSession(formData: FormData) {
            await updateDoc(gameDocRef, { status: 'error', errorMessage: errorMsg });
       });
       
+      return { success: true, gameId };
     } catch (error) {
        console.error("Failed to join game session in Firestore:", error);
        const errorMessage = error instanceof Error ? error.message : 'Could not join game in database.';
-       redirect(`${lobbyUrl}?error=${encodeURIComponent(errorMessage)}`);
+       return { success: false, error: errorMessage };
     }
-    
-    // Set role in session storage on client-side after redirection
-    redirect(`/play/multiplayer/${gameId}?role=player2`);
 }
 
 
