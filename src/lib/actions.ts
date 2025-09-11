@@ -102,13 +102,12 @@ function generateGameId(length = 6) {
   return result;
 }
 
-export async function createGameSession(formData: FormData) {
+export async function createGameSession(formData: FormData): Promise<{success: boolean; gameId?: string; error?: string}> {
   const difficulty = formData.get('difficulty') as GameDifficulty;
   const language = formData.get('language') as string;
-  const lobbyUrl = '/play/multiplayer';
   
   if (!difficulty || !language) {
-      redirect(`${lobbyUrl}?error=Dificuldade+e+idioma+são+obrigatórios.`);
+      return { success: false, error: 'Dificuldade e idioma são obrigatórios.'};
   }
 
   const gameId = generateGameId();
@@ -131,14 +130,12 @@ export async function createGameSession(formData: FormData) {
 
   try {
     await setDoc(doc(db, 'games', gameId), initialGameState);
+    return { success: true, gameId };
   } catch (error) {
     console.error("Failed to create game session in Firestore:", error);
     const errorMessage = error instanceof Error ? error.message : 'Could not create game in database.';
-    redirect(`${lobbyUrl}?error=${encodeURIComponent(errorMessage)}`);
+    return { success: false, error: errorMessage };
   }
-  
-  // Set role in session storage on client-side after redirection
-  redirect(`/play/multiplayer/${gameId}?role=player1`);
 }
 
 export async function joinGameSession(formData: FormData) {

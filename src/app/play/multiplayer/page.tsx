@@ -13,12 +13,11 @@ function MultiplayerLobby() {
         // This effect is specifically for handling the player role setting after redirection
         // from a create/join action.
         const role = searchParams.get('role');
-        const pathParts = window.location.pathname.split('/');
         
-        // Ensure we are on a specific game page, not the lobby page
-        if (role && pathParts.length > 3 && pathParts[2] === 'multiplayer') {
+        if (role) {
+            const pathParts = window.location.pathname.split('/');
             const gameId = pathParts[pathParts.length - 1];
-            if (gameId) {
+            if (gameId && gameId !== 'multiplayer') {
                 sessionStorage.setItem(`tile-takeover-player-role-${gameId}`, role);
                 
                 // Clean up URL to prevent this from running again on refresh
