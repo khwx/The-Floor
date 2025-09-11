@@ -13,6 +13,7 @@ import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useAudio } from '@/hooks/use-audio';
+import { Progress } from '@/components/ui/progress';
 
 type GameState = 'setup' | 'loading_board' | 'playing' | 'fetching_question' | 'ai_turn' | 'question' | 'duel' | 'finished';
 
@@ -47,6 +48,17 @@ const getGridSize = (territoryCount: number): { rows: number, cols: number } => 
 };
 
 
+const loadingMessages = [
+  "A afiar os neurónios...",
+  "A consultar os sábios da antiguidade...",
+  "A calibrar o motor de trivia...",
+  "Quase lá, não adormeça!",
+  "A polir as perguntas para brilharem...",
+  "A desvendar os segredos do universo...",
+  "A preparar uma dose de conhecimento...",
+];
+
+
 export default function PlayPage() {
   const [gameState, setGameState] = useState<GameState>('setup');
   const [board, setBoard] = useState<TileData[]>([]);
@@ -59,6 +71,9 @@ export default function PlayPage() {
   const [activeQuestion, setActiveQuestion] = useState<Question | null>(null);
   const [winner, setWinner] = useState<Player | 'draw' | null>(null);
   const [duel, setDuel] = useState<DuelState | null>(null);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [loadingMessage, setLoadingMessage] = useState(loadingMessages[0]);
+
 
   const { toast } = useToast();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -214,11 +229,6 @@ export default function PlayPage() {
       const territoryCount = board.filter(t => t.owner === 'ai' && t.theme === questionTheme).length;
       questionCount = Math.max(MIN_DUEL_QUESTIONS, territoryCount);
     }
-    
-    toast({
-        title: 'A preparar o seu desafio...',
-        description: `A gerar ${questionCount} pergunta(s) sobre "${questionTheme}".`,
-    });
 
     const questionResult = await generateQuestionAction(questionTheme, language, questionCount);
 
@@ -380,6 +390,42 @@ export default function PlayPage() {
       }
     }
   }, [gameState, duel, activeTile, endDuel, toast]);
+  
+  // Effect for loading animation
+  useEffect(() => {
+    let progressInterval: NodeJS.Timeout | null = null;
+    let messageInterval: NodeJS.Timeout | null = null;
+
+    if (gameState === 'fetching_question') {
+      setLoadingProgress(0);
+      setLoadingMessage(loadingMessages[0]);
+      
+      const estimatedTime = (activeTile?.owner === 'ai' ? 8000 : 4000); // 8s for duel, 4s for single
+
+      progressInterval = setInterval(() => {
+        setLoadingProgress(prev => {
+          if (prev >= 95) {
+            return prev;
+          }
+          return prev + 2;
+        });
+      }, estimatedTime / 50);
+      
+      messageInterval = setInterval(() => {
+        setLoadingMessage(prevMessage => {
+          const currentIndex = loadingMessages.indexOf(prevMessage);
+          const nextIndex = (currentIndex + 1) % loadingMessages.length;
+          return loadingMessages[nextIndex];
+        });
+      }, 2500);
+
+    }
+
+    return () => {
+      if (progressInterval) clearInterval(progressInterval);
+      if (messageInterval) clearInterval(messageInterval);
+    };
+  }, [gameState, activeTile]);
 
 
   useEffect(() => {
@@ -529,8 +575,11 @@ export default function PlayPage() {
             currentPlayer={'player'}
           />
           {gameState === 'fetching_question' && (
-            <div className="absolute inset-0 bg-black/10 flex flex-col items-center justify-center z-10 rounded-lg pointer-events-none">
-                 <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-10 rounded-lg pointer-events-none p-8 text-center">
+                 <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+                 <h2 className="text-2xl font-bold text-white mb-2">A preparar o seu desafio...</h2>
+                 <p className="text-lg text-muted-foreground mb-6">{loadingMessage}</p>
+                 <Progress value={loadingProgress} className="w-full max-w-sm" />
             </div>
           )}
            {gameState === 'ai_turn' && (
