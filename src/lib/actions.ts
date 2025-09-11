@@ -113,7 +113,7 @@ export async function createGameSession(formData: FormData) {
 
   const gameId = generateGameId();
   
-  const initialGameState: Partial<GameState> = {
+  const initialGameState: GameState = {
     gameId,
     difficulty,
     language,
@@ -137,6 +137,7 @@ export async function createGameSession(formData: FormData) {
     redirect(`${lobbyUrl}?error=${encodeURIComponent(errorMessage)}`);
   }
   
+  // Set role in session storage on client-side after redirection
   redirect(`/play/multiplayer/${gameId}?role=player1`);
 }
 
@@ -159,18 +160,20 @@ export async function joinGameSession(formData: FormData) {
 
       const gameState = gameDoc.data() as GameState;
 
-      if (gameState.players.player2 && gameState.players.player2 !== 'player2_id_joining') {
+      if (gameState.players.player2) {
           redirect(`${lobbyUrl}?error=${encodeURIComponent('Este jogo já está cheio.')}`);
       }
-      if (gameState.status !== 'waiting' && gameState.status !== 'generating') {
+      if (gameState.status !== 'waiting') {
         redirect(`${lobbyUrl}?error=${encodeURIComponent('Este jogo já começou ou terminou.')}`);
       }
       
+      // Reserve the spot
       await updateDoc(gameDocRef, {
-        'players.player2': 'player2_id_joining', 
+        'players.player2': 'player2_id_joining', // Placeholder to prevent race conditions
         'status': 'generating'
       });
 
+      // Generate the floor in the background
       generateFloor(gameState.difficulty, gameState.language).then(async floorResult => {
           if('error' in floorResult) {
             console.error(`Failed to generate floor for game ${gameId}: ${floorResult.error}`);
@@ -191,8 +194,12 @@ export async function joinGameSession(formData: FormData) {
             board: initialBoard,
             scores: { player1: 1, player2: 1 },
             status: 'playing',
-            'players.player2': 'player2_id',
+            'players.player2': 'player2_id', // Finalize player 2 join
           });
+      }).catch(async (e) => {
+          console.error("Error during board generation promise:", e);
+          const errorMsg = e instanceof Error ? e.message : "Failed to generate board";
+           await updateDoc(gameDocRef, { status: 'error', errorMessage: errorMsg });
       });
       
     } catch (error) {
@@ -200,7 +207,8 @@ export async function joinGameSession(formData: FormData) {
        const errorMessage = error instanceof Error ? error.message : 'Could not join game in database.';
        redirect(`${lobbyUrl}?error=${encodeURIComponent(errorMessage)}`);
     }
-
+    
+    // Set role in session storage on client-side after redirection
     redirect(`/play/multiplayer/${gameId}?role=player2`);
 }
 
@@ -266,7 +274,7 @@ export async function handleTileClick(gameId: string, tileId: number, player: Pl
     });
   } catch(e) {
     console.error(e);
-    // If transaction fails, we might need to revert status back to 'playing'
+    // If transaction fails, revert status back to 'playing'
     await updateDoc(doc(db, 'games', gameId), { status: 'playing' });
     if (e instanceof Error) return { error: e.message };
     return { error: "An unknown error occurred." };
