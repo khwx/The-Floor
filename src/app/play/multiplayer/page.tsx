@@ -1,13 +1,8 @@
 'use client';
 
-import { Suspense } from 'react';
 import { GameLobby } from "@/components/game-lobby";
-import { useSearchParams } from 'next/navigation';
 
-function MultiplayerLobby() {
-    const searchParams = useSearchParams();
-    const joinError = searchParams.get('error');
-
+export default function MultiplayerLobbyPage() {
     return (
         <main className="flex min-h-screen flex-col items-center justify-center p-8 bg-gradient-to-br from-background to-secondary">
             <div className="text-center mb-12">
@@ -20,17 +15,8 @@ function MultiplayerLobby() {
             </div>
 
             <div className="w-full max-w-md mx-auto">
-                <GameLobby initialJoinError={joinError} />
+                <GameLobby />
             </div>
         </main>
-    );
-}
-
-export default function MultiplayerLobbyPage() {
-    // Wrap with Suspense because useSearchParams() needs it.
-    return (
-        <Suspense fallback={<div>A carregar...</div>}>
-            <MultiplayerLobby />
-        </Suspense>
     );
 }
