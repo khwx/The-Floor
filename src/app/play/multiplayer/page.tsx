@@ -2,24 +2,28 @@
 
 import { Suspense, useEffect } from 'react';
 import { GameLobby } from "@/components/game-lobby";
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 function MultiplayerLobby() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const joinError = searchParams.get('error');
 
     useEffect(() => {
         // This effect is specifically for handling the player role setting after redirection
         // from a create/join action. It should be safe here.
         const url = new URL(window.location.href);
         const role = url.searchParams.get('role');
-        const gameId = url.pathname.split('/').pop();
-        
-        if (role && gameId) {
-          sessionStorage.setItem(`tile-takeover-player-role-${gameId}`, role);
-          // Clean up URL to prevent this from running again on refresh
-          const newUrl = new URL(window.location.href);
-          newUrl.searchParams.delete('role');
-          router.replace(newUrl.pathname + newUrl.search, { scroll: false });
+        // A better way to get gameId from URL path like /play/multiplayer/GAMEID
+        const pathParts = window.location.pathname.split('/');
+        const gameId = pathParts[pathParts.length - 1];
+
+        if (role && gameId && pathParts.includes('multiplayer')) {
+            sessionStorage.setItem(`tile-takeover-player-role-${gameId}`, role);
+            // Clean up URL to prevent this from running again on refresh
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.delete('role');
+            router.replace(newUrl.pathname + newUrl.search, { scroll: false });
         }
     }, [router]);
 
@@ -35,7 +39,7 @@ function MultiplayerLobby() {
             </div>
 
             <div className="w-full max-w-md mx-auto">
-                <GameLobby />
+                <GameLobby joinError={joinError} />
             </div>
         </main>
     );

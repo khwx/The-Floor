@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, Suspense, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +11,7 @@ import { createGameSession, joinGameSession } from '@/lib/actions';
 import { Loader2, Play, Users, XCircle } from 'lucide-react';
 import type { GameDifficulty } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { Suspense } from 'react';
 
 function SubmitButton({ pendingText, children }: { pendingText: string; children: React.ReactNode }) {
   const { pending } = useFormStatus();
@@ -118,30 +118,7 @@ function JoinGameForm({ error }: { error: string | null }) {
     );
 }
 
-function GameLobbyInternal() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const error = searchParams.get('error');
-
-  useEffect(() => {
-    // This effect handles setting the player role in sessionStorage
-    // after a redirect from create/join actions.
-    const url = new URL(window.location.href);
-    const role = url.searchParams.get('role');
-    const gameId = url.pathname.split('/').pop();
-
-    if (role && gameId) {
-      // The role param exists, so we are coming from a successful create/join.
-      // Set the role in session storage.
-      sessionStorage.setItem(`tile-takeover-player-role-${gameId}`, role);
-
-      // Clean up the URL by removing the role search param.
-      // This prevents the logic from re-running on refresh.
-      url.searchParams.delete('role');
-      router.replace(url.pathname + url.search, { scroll: false });
-    }
-  }, [router, searchParams]);
-
+export function GameLobby({ joinError }: { joinError: string | null }) {
   return (
     <div className="space-y-6">
       <CreateGameForm />
@@ -155,16 +132,7 @@ function GameLobbyInternal() {
           </div>
       </div>
 
-      <JoinGameForm error={error} />
+      <JoinGameForm error={joinError} />
     </div>
   );
-}
-
-
-export function GameLobby() {
-    return (
-        <Suspense fallback={<div>A carregar lobby...</div>}>
-            <GameLobbyInternal />
-        </Suspense>
-    )
 }
