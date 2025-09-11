@@ -127,7 +127,6 @@ export async function createGameSession(formData: FormData) {
     board: [],
     activeQuestion: null,
     duelState: null,
-    winner: undefined,
   };
 
   try {
@@ -365,7 +364,7 @@ async function checkEndGame(gameState: GameState, winnerOfTurn: PlayerRole, conq
     player2: newBoard.filter(t => t.owner === 'player2').length,
   };
 
-  let winner: PlayerRole | 'draw' | undefined = undefined;
+  let winner: PlayerRole | 'draw' | null = null;
   let status: GameState['status'] = 'playing';
 
   if (newScores.player1 === 0 || newScores.player2 === 0 || newScores.player1 + newScores.player2 === newBoard.length) {
