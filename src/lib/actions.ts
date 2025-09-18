@@ -143,6 +143,10 @@ export async function createGameSession(formData: FormData): Promise<FormResult>
 
   try {
     await setDoc(doc(db, 'games', gameId), initialGameState);
+    
+    // Store the player role in session storage on the client side after redirection
+    // This is a hint for the client, not a server-side action
+    
     return { success: true, gameId };
   } catch (error) {
     console.error("Failed to create game session in Firestore:", error);
@@ -322,7 +326,7 @@ export async function submitAnswer(gameId: string, player: PlayerRole, tileId: n
                     if (playerAnswer && !opponentAnswer) {
                        newDuelState.scores[player]++;
                     } else if (!playerAnswer && opponentAnswer) {
-                       newDuelState.scores[opponent]++;
+                       newDuelaupdateDoc.scores[opponent]++;
                     }
                     
                     // Move to next question or end duel

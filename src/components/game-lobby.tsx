@@ -28,6 +28,7 @@ function CreateGameForm() {
         const result = await createGameSession(formData);
 
         if (result.success) {
+            sessionStorage.setItem(`tile-takeover-player-role-${result.gameId}`, 'player1');
             router.push(`/play/multiplayer/${result.gameId}`);
         } else {
             setError(result.error || 'Ocorreu um erro desconhecido.');
@@ -112,6 +113,7 @@ function JoinGameForm() {
         const result = await joinGameSession(formData);
 
         if (result.success) {
+            sessionStorage.setItem(`tile-takeover-player-role-${result.gameId}`, 'player2');
             router.push(`/play/multiplayer/${result.gameId}`);
         } else {
             setError(result.error || 'Ocorreu um erro desconhecido.');
