@@ -133,7 +133,7 @@ export async function createGameSession(formData: FormData): Promise<FormResult>
     scores: { player1: 0, player2: 0 },
     turn: 'player1',
     players: {
-      player1: 'player1_id', // This would be the actual user ID
+      player1: 'player1_id', 
       player2: null
     },
     board: [],
@@ -143,10 +143,6 @@ export async function createGameSession(formData: FormData): Promise<FormResult>
 
   try {
     await setDoc(doc(db, 'games', gameId), initialGameState);
-    
-    // Store the player role in session storage on the client side after redirection
-    // This is a hint for the client, not a server-side action
-    
     return { success: true, gameId };
   } catch (error) {
     console.error("Failed to create game session in Firestore:", error);
@@ -185,7 +181,6 @@ export async function joinGameSession(formData: FormData): Promise<FormResult> {
         'status': 'generating'
       });
 
-      // Do not await this, let it run in the background
       generateFloor(gameState.difficulty, gameState.language).then(async floorResult => {
           if('error' in floorResult) {
             console.error(`Failed to generate floor for game ${gameId}: ${floorResult.error}`);
@@ -285,7 +280,6 @@ export async function handleTileClick(gameId: string, tileId: number, player: Pl
     });
   } catch(e) {
     console.error(e);
-    // If transaction fails, revert status back to 'playing'
     await updateDoc(doc(db, 'games', gameId), { status: 'playing' });
     if (e instanceof Error) return { error: e.message };
     return { error: "An unknown error occurred." };
@@ -316,27 +310,23 @@ export async function submitAnswer(gameId: string, player: PlayerRole, tileId: n
                 const newDuelState = { ...duelState };
                 newDuelState.answers[activeQuestionIndex] = { ...currentAnswers, [player]: isCorrect };
                 
-                // Check if both players have answered
                 const opponent = player === 'player1' ? 'player2' : 'player1';
                 if(newDuelState.answers[activeQuestionIndex][opponent] !== undefined) {
-                    // Both answered, determine winner of the round
                     const playerAnswer = newDuelState.answers[activeQuestionIndex][player];
                     const opponentAnswer = newDuelState.answers[activeQuestionIndex][opponent];
 
                     if (playerAnswer && !opponentAnswer) {
                        newDuelState.scores[player]++;
                     } else if (!playerAnswer && opponentAnswer) {
-                       newDuelaupdateDoc.scores[opponent]++;
+                       newDuelState.scores[opponent]++;
                     }
                     
-                    // Move to next question or end duel
                     if (activeQuestionIndex + 1 < questions.length) {
                         newDuelState.activeQuestionIndex++;
                     } else {
-                        // End of duel
                         const challengerWon = newDuelState.scores[duelState.challenger] > newDuelState.scores[duelState.challenger === 'player1' ? 'player2' : 'player1'];
                         transaction.update(gameDocRef, await checkEndGame(gameState, duelState.challenger, duelState.tile.id, challengerWon));
-                        return; // Exit transaction
+                        return;
                     }
                 }
                 transaction.update(gameDocRef, { duelState: newDuelState });
@@ -406,7 +396,6 @@ async function checkEndGame(gameState: GameState, winnerOfTurn: PlayerRole, conq
   };
 }
 
-// In case a player closes the modal or times out on their turn
 export async function endDuelForPlayer(gameId: string, player: PlayerRole) {
     try {
         await runTransaction(db, async (transaction) => {
@@ -417,7 +406,6 @@ export async function endDuelForPlayer(gameId: string, player: PlayerRole) {
 
             if (gameState.status !== 'duel' || !gameState.duelState) return;
             
-            // The player who closes the modal loses the duel
             const challengerWon = gameState.duelState.challenger !== player;
             transaction.update(gameDocRef, await checkEndGame(gameState, gameState.duelState.challenger, gameState.duelState.tile.id, challengerWon));
         });

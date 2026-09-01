@@ -1,14 +1,14 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, use } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { GameState, PlayerRole, TileData, Question, MultiplayerDuelState } from '@/lib/types';
+import type { GameState, PlayerRole, TileData, Question } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { Scoreboard } from '@/components/scoreboard';
 import { GameBoard } from '@/components/game-board';
 import { useToast } from '@/hooks/use-toast';
-import { handleTileClick, submitAnswer, checkEndGame, endDuelForPlayer } from '@/lib/actions';
+import { handleTileClick, submitAnswer, endDuelForPlayer } from '@/lib/actions';
 import { QuestionModal } from '@/components/question-modal';
 import { GameOverDialog } from '@/components/game-over-dialog';
 
@@ -29,9 +29,8 @@ const getGridSize = (territoryCount: number): { rows: number, cols: number } => 
   return { rows, cols };
 };
 
-
-export default function MultiplayerGamePage({ params }: { params: { gameId: string } }) {
-  const { gameId } = params;
+export default function MultiplayerGamePage({ params }: { params: Promise<{ gameId: string }> }) {
+  const { gameId } = use(params);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [currentPlayerRole, setCurrentPlayerRole] = useState<PlayerRole | null>(null);
@@ -40,7 +39,6 @@ export default function MultiplayerGamePage({ params }: { params: { gameId: stri
   useEffect(() => {
     let role = sessionStorage.getItem(`tile-takeover-player-role-${gameId}`) as PlayerRole;
     if (!role) {
-      // Fallback for direct navigation/refresh - not secure, for demo only
       role = 'player2'; 
       sessionStorage.setItem(`tile-takeover-player-role-${gameId}`, role);
     }
@@ -96,11 +94,9 @@ export default function MultiplayerGamePage({ params }: { params: { gameId: stri
   const onModalClose = useCallback(async () => {
     if (!gameId || !gameState || !currentPlayerRole) return;
 
-    // A player closing a modal counts as a wrong answer.
     if (gameState.activeQuestion) {
         await onAnswer(false);
     } else if (gameState.duelState) {
-        // In a duel, closing the modal forfeits the duel for that player
         await endDuelForPlayer(gameId, currentPlayerRole);
     }
   }, [gameId, gameState, currentPlayerRole, onAnswer]);
