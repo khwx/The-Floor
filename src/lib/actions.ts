@@ -181,6 +181,7 @@ export async function joinGameSession(formData: FormData): Promise<ActionResult>
         'status': 'generating'
       });
 
+      // Start generation in background
       generateFloor(gameState.difficulty, gameState.language).then(async floorResult => {
           if('error' in floorResult) {
             console.error(`Failed to generate floor for game ${gameId}: ${floorResult.error}`);
