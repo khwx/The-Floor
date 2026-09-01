@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { generateFloor as generateFloorAction, generateQuestion as generateQuestionAction } from '@/lib/actions';
-import type { GameDifficulty, Player, Territory, Question, DuelState } from '@/lib/types';
+import type { GameDifficulty, Player, Territory, Question, DuelState, TileData } from '@/lib/types';
 import { GameSetup } from '@/components/game-setup';
 import { GameBoard } from '@/components/game-board';
 import { Scoreboard } from '@/components/scoreboard';
@@ -17,13 +17,7 @@ import { Progress } from '@/components/ui/progress';
 
 type GameState = 'setup' | 'loading_board' | 'playing' | 'fetching_question' | 'ai_turn' | 'question' | 'duel' | 'finished';
 
-type TileData = {
-  id: number;
-  theme: string;
-  owner: Player | 'unowned';
-};
-
-const DUEL_TIME_PER_QUESTION = 10; // seconds
+const DUEL_TIME_PER_QUESTION = 15; // seconds
 const MIN_DUEL_QUESTIONS = 5;
 
 const getGridSize = (territoryCount: number): { rows: number, cols: number } => {
@@ -39,14 +33,12 @@ const getGridSize = (territoryCount: number): { rows: number, cols: number } => 
   }
   
   if (territoryCount % cols !== 0) {
-      // Fallback for prime numbers or other tricky numbers
       return { rows: 1, cols: territoryCount };
   }
   
   const rows = territoryCount / cols;
   return { rows, cols };
 };
-
 
 const loadingMessages = [
   "A afiar os neurónios...",
@@ -57,7 +49,6 @@ const loadingMessages = [
   "A desvendar os segredos do universo...",
   "A preparar uma dose de conhecimento...",
 ];
-
 
 export default function PlayPage() {
   const [gameState, setGameState] = useState<GameState>('setup');
@@ -73,7 +64,6 @@ export default function PlayPage() {
   const [duel, setDuel] = useState<DuelState | null>(null);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingMessage, setLoadingMessage] = useState(loadingMessages[0]);
-
 
   const { toast } = useToast();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -102,7 +92,6 @@ export default function PlayPage() {
       const winnerOfTurn = currentTurnPlayer;
       const loserOfTurn = winnerOfTurn === 'player' ? 'ai' : 'player';
       
-       // Check if the conquered tile belonged to the opponent, triggering a full theme conquest
       const isDuelWin = tileConquered.owner === loserOfTurn;
 
       if (isDuelWin) {
@@ -115,7 +104,6 @@ export default function PlayPage() {
             return t;
           });
       } else if (tileConquered.owner === 'unowned') {
-          // Normal win condition: conquer a single unowned tile
           tileWasConquered = true;
           newBoard = newBoard.map(t =>
             t.id === tileConquered.id ? { ...t, owner: winnerOfTurn } : t
@@ -140,25 +128,20 @@ export default function PlayPage() {
       return;
     }
     
-    // "Winner continues" logic
     if (tileWasConquered) {
-      // If a tile was taken, the current player continues
       setGameState(currentTurnPlayer === 'ai' ? 'ai_turn' : 'playing');
     } else {
-      // If no tile was taken (wrong answer), switch turns
       const nextTurn = currentTurnPlayer === 'player' ? 'ai' : 'player';
       setTurn(nextTurn);
       setGameState(nextTurn === 'ai' ? 'ai_turn' : 'playing');
     }
   }, [board, checkEndGame, playAudio]);
 
-
   const endDuel = useCallback((finalDuelState: DuelState, duelTile: TileData) => {
     let wasTurnSuccessful: boolean;
     if (finalDuelState.challenger === 'player') {
-      // Challenger must have more correct answers to win
       wasTurnSuccessful = finalDuelState.playerCorrect > finalDuelState.aiCorrect;
-    } else { // AI is challenger
+    } else {
       wasTurnSuccessful = finalDuelState.aiCorrect > finalDuelState.playerCorrect;
     }
     
@@ -245,11 +228,6 @@ export default function PlayPage() {
     
     if (isDuel) {
         const totalDuelTime = DUEL_TIME_PER_QUESTION * questionResult.length;
-        toast({
-            title: `Duelo Iniciado!`,
-            description: `Tema: "${questionTheme}". Você tem ${totalDuelTime} segundos para responder a ${questionResult.length} pergunta(s).`,
-        });
-        
         setActiveQuestion(questionResult[0]);
         setDuel({
             challenger: 'player',
@@ -259,7 +237,6 @@ export default function PlayPage() {
             aiCorrect: 0,
             timeRemaining: totalDuelTime,
         });
-        
         setGameState('duel');
     } else { 
         setActiveQuestion(questionResult[0]);
@@ -278,19 +255,16 @@ export default function PlayPage() {
 
     if (gameState === 'question') {
       const tileToConquer = activeTile;
-      // Delay to show the correct/incorrect answer flash
       setTimeout(() => endTurn(correct, 'player', tileToConquer), 1500);
       return;
     }
 
     if (gameState === 'duel' && duel) {
       const newPlayerCorrect = duel.playerCorrect + (correct ? 1 : 0);
-      // In a player duel, the AI's response is simulated.
-      const aiResponseCorrect = Math.random() > 0.35; // AI has a 65% chance of being correct
+      const aiResponseCorrect = Math.random() > 0.35; 
       const newAiCorrect = duel.aiCorrect + (aiResponseCorrect ? 1 : 0);
 
       const nextQuestionIndex = duel.activeQuestionIndex + 1;
-      
       const updatedDuelState: DuelState = {
           ...duel,
           playerCorrect: newPlayerCorrect,
@@ -298,19 +272,16 @@ export default function PlayPage() {
       };
 
       if (nextQuestionIndex < duel.questions.length) {
-        // More questions in the duel, move to the next one
         setTimeout(() => {
             setDuel({
               ...updatedDuelState,
               activeQuestionIndex: nextQuestionIndex,
             });
             setActiveQuestion(duel.questions[nextQuestionIndex]);
-        }, 1500); // Delay to show flash
+        }, 1500); 
       } else {
-        // Last question answered, end the duel
         if (timerRef.current) clearInterval(timerRef.current);
         const tileToConquer = activeTile;
-        // Need to set duel state here before calling endDuel
         setDuel(updatedDuelState); 
         endDuel(updatedDuelState, tileToConquer);
       }
@@ -323,7 +294,6 @@ export default function PlayPage() {
       endTurn(false, 'player', activeTile);
     }
     if (gameState === 'duel' && duel) {
-      // If player closes modal during their duel, they lose the challenge
        if (timerRef.current) clearInterval(timerRef.current);
       endDuel(duel, activeTile);
     }
@@ -352,7 +322,6 @@ export default function PlayPage() {
       return neighbors;
   }, []);
   
-  // Effect for duel timer countdown
   useEffect(() => {
     if (gameState === 'duel' && duel && duel.timeRemaining > 0) {
       timerRef.current = setInterval(() => {
@@ -368,7 +337,6 @@ export default function PlayPage() {
         clearInterval(timerRef.current);
       }
     }
-
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
@@ -376,7 +344,6 @@ export default function PlayPage() {
     };
   }, [gameState, duel]);
 
-  // Effect to end duel when time runs out
   useEffect(() => {
     if (gameState === 'duel' && duel && duel.timeRemaining === 0) {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -391,7 +358,6 @@ export default function PlayPage() {
     }
   }, [gameState, duel, activeTile, endDuel, toast]);
   
-  // Effect for loading animation
   useEffect(() => {
     let progressInterval: NodeJS.Timeout | null = null;
     let messageInterval: NodeJS.Timeout | null = null;
@@ -399,14 +365,11 @@ export default function PlayPage() {
     if (gameState === 'fetching_question') {
       setLoadingProgress(0);
       setLoadingMessage(loadingMessages[0]);
-      
-      const estimatedTime = (activeTile?.owner === 'ai' ? 8000 : 4000); // 8s for duel, 4s for single
+      const estimatedTime = (activeTile?.owner === 'ai' ? 8000 : 4000);
 
       progressInterval = setInterval(() => {
         setLoadingProgress(prev => {
-          if (prev >= 95) {
-            return prev;
-          }
+          if (prev >= 95) return prev;
           return prev + 2;
         });
       }, estimatedTime / 50);
@@ -418,25 +381,19 @@ export default function PlayPage() {
           return loadingMessages[nextIndex];
         });
       }, 2500);
-
     }
-
     return () => {
       if (progressInterval) clearInterval(progressInterval);
       if (messageInterval) clearInterval(messageInterval);
     };
   }, [gameState, activeTile]);
 
-
   useEffect(() => {
-    if (gameState !== 'ai_turn' || turn !== 'ai' || board.length === 0) {
-      return;
-    }
+    if (gameState !== 'ai_turn' || turn !== 'ai' || board.length === 0) return;
 
     const aiTurnTimeout = setTimeout(async () => {
         const { rows, cols } = gridSize;
         const aiTiles = board.filter(t => t.owner === 'ai');
-        
         let duelTargets: {tile: TileData, territorySize: number}[] = [];
         let unownedTargets: TileData[] = [];
 
@@ -454,7 +411,6 @@ export default function PlayPage() {
         }
         
         let targetTile: TileData | null = null;
-        // Prioritize duels that give more tiles
         if (duelTargets.length > 0) {
             duelTargets.sort((a, b) => b.territorySize - a.territorySize);
             targetTile = duelTargets[0].tile;
@@ -463,7 +419,6 @@ export default function PlayPage() {
         }
         
         if (!targetTile) {
-           toast({ title: 'A IA não tem jogadas!', description: 'É a sua vez.' });
            setTurn('player');
            setGameState('playing');
            return;
@@ -482,63 +437,41 @@ export default function PlayPage() {
                 description: `A IA desafia o seu território de "${theme}". Prepare-se para um duelo de ${numQuestions} perguntas!`,
             });
             
-            // Simulate duel after a short delay
             setTimeout(() => {
                 let aiCorrect = 0;
                 let playerCorrect = 0;
-                // Simulate answers for the duel
                 for(let i = 0; i < numQuestions; i++){
-                    if (Math.random() > 0.35) aiCorrect++; // AI is 65% likely to be correct
-                    if (Math.random() > 0.5) playerCorrect++; // Player is 50% likely to be correct
+                    if (Math.random() > 0.35) aiCorrect++;
+                    if (Math.random() > 0.5) playerCorrect++;
                 }
 
                 const aiWon = aiCorrect > playerCorrect;
-                
-                if (aiWon) {
-                    playAudio('/sounds/lose.mp3');
-                }
+                if (aiWon) playAudio('/sounds/lose.mp3');
                 
                 toast({
                     title: `Duelo com IA terminado!`,
                     description: `A IA acertou ${aiCorrect} e você ${playerCorrect}. A IA ${aiWon ? 'venceu' : 'perdeu'}!`,
                     variant: aiWon ? 'destructive' : 'default'
                 });
-                // Use a different timeout to announce result before ending turn
-                setTimeout(() => {
-                  endTurn(aiWon, 'ai', targetTile!);
-                }, 1500)
+                setTimeout(() => endTurn(aiWon, 'ai', targetTile!), 1500)
             }, 2000);
-
         } else {
             toast({
                 title: `Turno da IA`,
                 description: `A IA tenta conquistar o território neutro de "${theme}".`,
             });
-            
-            const isCorrect = Math.random() > 0.35; // 65% chance to be correct
-
-            // Simulate AI thinking time
+            const isCorrect = Math.random() > 0.35;
             setTimeout(() => {
-                if (isCorrect) {
-                  playAudio('/sounds/correct.mp3');
-                } else {
-                  playAudio('/sounds/incorrect.mp3');
-                }
+                if (isCorrect) playAudio('/sounds/correct.mp3');
+                else playAudio('/sounds/incorrect.mp3');
                 toast({
                     title: `A IA respondeu ${isCorrect ? 'corretamente' : 'incorretamente'}!`,
                     variant: isCorrect ? 'default' : 'destructive'
                 });
-
-                // Use another timeout to show result before ending turn
-                setTimeout(() => {
-                    endTurn(isCorrect, 'ai', targetTile!);
-                }, 1500);
-
+                setTimeout(() => endTurn(isCorrect, 'ai', targetTile!), 1500);
             }, 2000);
         }
-
     }, 1500);
-
     return () => clearTimeout(aiTurnTimeout);
   }, [gameState, turn, board, gridSize, getNeighbors, endTurn, toast, playAudio]);
 

@@ -78,6 +78,7 @@ export async function getImageForQuery(query: string): Promise<{ url: string } |
   }
 
   try {
+    // Adicionado safesearch=true para garantir imagens apropriadas
     const response = await fetch(`https://pixabay.com/api/?key=${accessKey}&q=${encodeURIComponent(query)}&image_type=photo&orientation=horizontal&per_page=5&safesearch=true`);
 
     if (!response.ok) {
@@ -171,9 +172,6 @@ export async function joinGameSession(formData: FormData): Promise<ActionResult>
 
       if (gameState.players.player2) {
           return { success: false, error: 'Este jogo já está cheio.' };
-      }
-      if (gameState.status !== 'waiting') {
-        return { success: false, error: 'Este jogo já começou ou terminou.' };
       }
       
       await updateDoc(gameDocRef, {
