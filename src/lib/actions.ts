@@ -113,9 +113,9 @@ function generateGameId(length = 6) {
   return result;
 }
 
-type FormResult = { success: true; gameId: string } | { success: false; error: string };
+export type ActionResult = { success: true; gameId: string } | { success: false; error: string };
 
-export async function createGameSession(formData: FormData): Promise<FormResult> {
+export async function createGameSession(formData: FormData): Promise<ActionResult> {
   const difficulty = formData.get('difficulty') as GameDifficulty;
   const language = formData.get('language') as string;
   
@@ -151,7 +151,7 @@ export async function createGameSession(formData: FormData): Promise<FormResult>
   }
 }
 
-export async function joinGameSession(formData: FormData): Promise<FormResult> {
+export async function joinGameSession(formData: FormData): Promise<ActionResult> {
     const gameId = (formData.get('gameId') as string)?.toUpperCase();
 
     if (!gameId || gameId.length !== 6) {
@@ -217,7 +217,6 @@ export async function joinGameSession(formData: FormData): Promise<FormResult> {
        return { success: false, error: errorMessage };
     }
 }
-
 
 export async function handleTileClick(gameId: string, tileId: number, player: PlayerRole) {
   try {

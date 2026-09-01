@@ -39,6 +39,7 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ game
   useEffect(() => {
     let role = sessionStorage.getItem(`tile-takeover-player-role-${gameId}`) as PlayerRole;
     if (!role) {
+      // If no role set, assume player 2 joining
       role = 'player2'; 
       sessionStorage.setItem(`tile-takeover-player-role-${gameId}`, role);
     }
