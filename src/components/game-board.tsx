@@ -67,6 +67,7 @@ export function GameBoard({ board, gridSize, onTileClick, playerTurn, currentPla
             key={tile.id}
             tile={tile}
             isClickable={isClickable}
+            isAdjacent={isAdjacent && tile.owner === 'unowned'}
             onClick={() => onTileClick(tile)}
           />
         );

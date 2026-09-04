@@ -8,28 +8,28 @@ Legenda: ✅ Feito | 🔨 Em curso | ⏳ Pendente
 - ⏳ IA nunca pergunta ao jogador nos duelos (respostas simuladas com Math.random)
 - ⏳ Transações Firestore com fetchs de rede (timeout risk ~30s)
 - ⏳ Background generation em serverless (pode ser killed)
-- ⏳ Jogador pode clicar tiles não adjacentes (blueprint: tiles deviam ser adjacentes)
+- ✅ Jogador pode clicar tiles não adjacentes → fix adjacency check em handleTileClick
 - ⏳ Game ID collision (6 chars, sem check de existência)
 
 ## 🎯 FUNCIONALIDADES EM FALTA (P1)
-- ⏳ IA difficulty não reflete accuracy (sempre 65%)
+- ✅ IA difficulty não reflete accuracy → AI_ACCURACY por difficulty (45/60/75/90%)
 - ⏳ Modo equipas (blueprint: "Team Play Mode")
 - ⏳ Seleção de categorias pelo jogador (blueprint: "Category Selection")
 - ⏳ Supabase integration (schema pronto, client pronto, zero usage no game logic)
 
 ## 🖼️ UX / UI (P2)
-- 🔨 icons.tsx não mapeia temas PT (HelpCircle para tudo)
-- 🔨 lang="en" hardcoded no layout (UI em PT)
-- 🔨 Game-over dialog: dismiss fecha dialog sem opção de ver tabuleiro
-- ⏳ Sem indicação visual de casas adjacentes clicáveis
-- ⏳ Sem feedback visual de corret/incorret no modal (fecha rápido)
+- ✅ icons.tsx não mapeia temas PT → 106 categorias PT mapeadas + fuzzy match
+- ✅ lang="en" hardcoded no layout → lang="pt"
+- ✅ Game-over dialog: dismiss fecha dialog → bloqueado via onPointerDownOutside
+- 🔨 Sem indicação visual de casas adjacentes clicáveis
+- 🔨 Sem feedback visual de corret/incorret no modal (fecha rápido)
 - ⏳ AI turn sem visibilidade (só "A IA está a pensar...")
 - ⏳ Sem confirmação ao sair de jogo ativo
 - ⏳ Sons sem toggle mute
 - ⏳ Loading messages hardcoded em PT (não respeita idioma)
 
 ## 🔧 CÓDIGO (P2)
-- 🔨 getGridSize duplicado em 2 ficheiros
+- ✅ getGridSize duplicado → extraído para src/lib/grid.ts
 - ⏳ play/page.tsx monolítico (544 linhas - refatorar em hooks)
 - ⏳ `ignoreBuildErrors` esconde erros reais
 - ⏳ Deps não usadas no package.json (recharts, date-fns, embla, etc.)

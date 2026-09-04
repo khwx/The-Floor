@@ -9,10 +9,11 @@ import { useEffect, useState } from 'react';
 type TileProps = {
   tile: TileData;
   isClickable: boolean;
+  isAdjacent?: boolean;
   onClick: () => void;
 };
 
-export function Tile({ tile, isClickable, onClick }: TileProps) {
+export function Tile({ tile, isClickable, isAdjacent, onClick }: TileProps) {
   const ThemeIcon = getIconForTheme(tile.theme);
   const [isConquered, setIsConquered] = useState(false);
   const [prevOwner, setPrevOwner] = useState(tile.owner);
@@ -60,7 +61,9 @@ export function Tile({ tile, isClickable, onClick }: TileProps) {
         ownerClass,
         isClickable ? clickableRingClass : 'cursor-not-allowed',
         tile.owner !== 'unowned' && 'ring-2 ring-offset-1 ring-offset-background',
-        isConquered && 'animate-tile-conquer'
+        isConquered && 'animate-tile-conquer',
+        isAdjacent && tile.owner === 'unowned' && !isClickable && 'border-2 border-dashed border-green-500/50',
+        isAdjacent && tile.owner === 'unowned' && isClickable && 'border-2 border-green-500/70 shadow-[0_0_8px_rgba(34,197,94,0.3)]'
       )}
       style={{ animationDelay: `${tile.id * 20}ms`, animationFillMode: 'forwards' }}
     >

@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import type { TileData, Question, MultiplayerDuelState, PlayerRole, DuelState } from '@/lib/types';
 import { getIconForTheme } from './icons';
-import { Loader2, Swords, Clock } from 'lucide-react';
+import { Loader2, Swords, Clock, CheckCircle2, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 
@@ -30,10 +30,12 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel,
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [feedbackCorrect, setFeedbackCorrect] = useState<boolean | null>(null);
 
   useEffect(() => {
     setSelectedOption(null);
     setIsAnswered(false);
+    setFeedbackCorrect(null);
     setImageError(false);
   }, [question]);
 
@@ -42,6 +44,7 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel,
       setTimeout(() => {
         setSelectedOption(null);
         setIsAnswered(false);
+        setFeedbackCorrect(null);
         setImageError(false);
       }, 300);
     }
@@ -75,6 +78,7 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel,
     if (!selectedOption || !question) return;
     setIsAnswered(true);
     const isCorrect = selectedOption === question.answer;
+    setFeedbackCorrect(isCorrect);
     onAnswer(isCorrect);
   };
 
@@ -184,6 +188,25 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel,
         )}
 
         <DialogFooter className="mt-4">
+          {isAnswered && feedbackCorrect !== null && (
+            <div className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-semibold text-sm transition-all duration-300 ${
+              feedbackCorrect
+                ? 'bg-green-500/20 text-green-300 border border-green-500/30'
+                : 'bg-red-500/20 text-red-300 border border-red-500/30'
+            }`}>
+              {feedbackCorrect ? (
+                <>
+                  <CheckCircle2 className="h-5 w-5 shrink-0" />
+                  <span>Correto!</span>
+                </>
+              ) : (
+                <>
+                  <XCircle className="h-5 w-5 shrink-0" />
+                  <span>Incorreto! Resposta: <strong>{question?.answer}</strong></span>
+                </>
+              )}
+            </div>
+          )}
           <Button 
             className="w-full" 
             size="lg"

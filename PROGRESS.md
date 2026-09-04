@@ -6,14 +6,23 @@
 - **Push OK:** `main` -> `origin/main`
 
 ## 4 Set 2026 - Análise completa + Correções Críticas
-- **Status:** Em progresso
-- **Melhorias em curso:**
-  - icons.tsx: mapeamento PT + fallback por substring
+- **Commit:** `9a8f0ae` - `feat: icons PT, adjacency, IA difficulty, game-over fix, tracking files`
+- **Feito:**
+  - icons.tsx: 106 categorias PT mapeadas + fuzzy match por keyword
   - layout.tsx: fix `lang="en"` -> `lang="pt"`
-  - game-over-dialog.tsx: dismiss não fecha dialog
-  - play/page.tsx: IA respeita difficulty (acc) + adjacency check
-  - game-board.tsx: ARIA labels + borda verde casas adjacentes
-  - Extract getGridSize para shared utility
+  - game-over-dialog.tsx: dismiss bloqueado (X/outside não fecha dialog)
+  - play/page.tsx: adjacency check em handleTileClick, IA accuracy por difficulty
+  - src/lib/grid.ts: getGridSize + getNeighbors extraídos
+- **Push OK:** `main` -> `origin/main`
+
+## 4 Set 2026 - Melhorias UX/UI (QuestionModal + GameBoard)
+- **Commit:** `pendente`
+- **Feito:**
+  - question-modal.tsx: feedback visual de correto/incorreto com banner colorido
+  - tile.tsx: borda verde em casas adjacentes (dashed se não clicável, glow se clicável)
+  - game-board.tsx: passa isAdjacent ao Tile
+  - TAREFAS.md: status atualizado com todas as conclusões
+- **Push OK:** pendente
 
 ## Pendente (análise completa)
 - V1 - Refactorizar play/page.tsx em hooks menores
