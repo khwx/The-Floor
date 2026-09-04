@@ -14,7 +14,7 @@
 ## 🛠️ Tecnologias Utilizadas
 
 - **Framework:** [Next.js 15](https://nextjs.org/)
-- **Base de Dados:** [Firebase Firestore](https://firebase.google.com/docs/firestore)
+- **Base de Dados:** [Firebase Firestore](https://firebase.google.com/docs/firestore) + [Supabase](https://supabase.com) (híbrido pronto para Vercel)
 - **IA Generativa:** [Google Genkit](https://firebase.google.com/docs/genkit)
 - **Estilização:** [Tailwind CSS](https://tailwindcss.com/) & [Shadcn/UI](https://ui.shadcn.com/)
 - **Imagens:** [Pixabay API](https://pixabay.com/api/docs/)
@@ -33,7 +33,7 @@
    ```
 
 3. **Configure as Variáveis de Ambiente:**
-   Crie um ficheiro `.env` na raiz do projeto com as suas chaves:
+   Crie um ficheiro `.env` na raiz do projeto com as suas chaves (ver `.env.example`):
    ```env
    NEXT_PUBLIC_FIREBASE_API_KEY=sua_chave
    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=seu_projeto.firebaseapp.com
@@ -42,9 +42,15 @@
    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=seu_id
    NEXT_PUBLIC_FIREBASE_APP_ID=seu_app_id
    
-   GEMINI_API_KEY=sua_chave_gemini
+   GOOGLE_GENAI_API_KEY=sua_chave_gemini # ou GEMINI_API_KEY
    PIXABAY_API_KEY=sua_chave_pixabay
+
+   # Supabase (opcional - para ranking/histórico no Vercel)
+   NEXT_PUBLIC_SUPABASE_URL=https://seu-projeto.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=sua_anon_key
+   SUPABASE_SERVICE_ROLE_KEY=sua_service_role_key
    ```
+   > No Vercel: `Settings > Environment Variables` adiciona as mesmas vars. Corre `supabase/schema.sql` no Supabase SQL Editor.
 
 4. **Inicie o servidor de desenvolvimento:**
    ```bash

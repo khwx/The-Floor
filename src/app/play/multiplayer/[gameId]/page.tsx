@@ -173,15 +173,15 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ game
         </main>
       </div>
 
-       <QuestionModal
+        <QuestionModal
         isOpen={isQuestionModalOpen}
         tile={activeTile}
         question={activeQuestion}
         onAnswer={onAnswer}
         onClose={onModalClose}
-        duel={gameState.duelState}
+        duel={gameState.duelState ?? null}
         currentPlayer={currentPlayerRole}
-      />
+       />
        <GameOverDialog
         isOpen={gameState.status === 'finished'}
         winner={gameState.winner ?? null}
