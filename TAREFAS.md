@@ -5,7 +5,7 @@ Legenda: ✅ Feito | 🔨 Em curso | ⏳ Pendente
 ---
 
 ## 🐛 BUGS CRÍTICOS (P0)
-- ⏳ IA nunca pergunta ao jogador nos duelos (respostas simuladas com Math.random)
+- ✅ IA nunca pergunta ao jogador nos duelos → agora gera perguntas reais via AI + QuestionModal
 - ⏳ Transações Firestore com fetchs de rede (timeout risk ~30s)
 - ⏳ Background generation em serverless (pode ser killed)
 - ✅ Jogador pode clicar tiles não adjacentes → fix adjacency check em handleTileClick
@@ -21,8 +21,8 @@ Legenda: ✅ Feito | 🔨 Em curso | ⏳ Pendente
 - ✅ icons.tsx não mapeia temas PT → 106 categorias PT mapeadas + fuzzy match
 - ✅ lang="en" hardcoded no layout → lang="pt"
 - ✅ Game-over dialog: dismiss fecha dialog → bloqueado via onPointerDownOutside
-- 🔨 Sem indicação visual de casas adjacentes clicáveis
-- 🔨 Sem feedback visual de corret/incorret no modal (fecha rápido)
+- ✅ Sem indicação visual de casas adjacentes clicáveis → borda verde dashed/glow
+- ✅ Sem feedback visual de corret/incorret no modal → banner verde/vermelho com ícones
 - ⏳ AI turn sem visibilidade (só "A IA está a pensar...")
 - ⏳ Sem confirmação ao sair de jogo ativo
 - ⏳ Sons sem toggle mute

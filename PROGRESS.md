@@ -16,12 +16,20 @@
 - **Push OK:** `main` -> `origin/main`
 
 ## 4 Set 2026 - Melhorias UX/UI (QuestionModal + GameBoard)
-- **Commit:** `pendente`
+- **Commit:** `2bc5c88` - `feat: feedback visual respostas + borda verde casas adjacentes`
 - **Feito:**
   - question-modal.tsx: feedback visual de correto/incorreto com banner colorido
   - tile.tsx: borda verde em casas adjacentes (dashed se não clicável, glow se clicável)
   - game-board.tsx: passa isAdjacent ao Tile
   - TAREFAS.md: status atualizado com todas as conclusões
+- **Push OK:** `main` -> `origin/main`
+
+## 4 Set 2026 - Fix P0: IA duel com perguntas reais
+- **Commit:** pendente
+- **Feito:**
+  - play/page.tsx: IA agora gera perguntas reais via AI quando desafia o jogador
+  - Antes: respostas simuladas com Math.random(), jogador nunca via perguntas
+  - Agora: QuestionModal abre com perguntas reais, tracker correto/errado funciona
 - **Push OK:** pendente
 
 ## Pendente (análise completa)

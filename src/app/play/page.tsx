@@ -424,25 +424,30 @@ export default function PlayPage() {
                 description: `A IA desafia o seu território de "${theme}". Prepare-se para um duelo de ${numQuestions} perguntas!`,
             });
             
-            setTimeout(() => {
-                let aiCorrect = 0;
-                let playerCorrect = 0;
-                const aiAcc = AI_ACCURACY[difficulty];
-                for(let i = 0; i < numQuestions; i++){
-                    if (Math.random() < aiAcc) aiCorrect++;
-                    if (Math.random() > 0.5) playerCorrect++;
-                }
-
-                const aiWon = aiCorrect > playerCorrect;
-                if (aiWon) playAudio('/sounds/lose.mp3');
-                
+            const questionResult = await generateQuestionAction(theme, language, numQuestions);
+            if ('error' in questionResult) {
                 toast({
-                    title: `Duelo com IA terminado!`,
-                    description: `A IA acertou ${aiCorrect} e você ${playerCorrect}. A IA ${aiWon ? 'venceu' : 'perdeu'}!`,
-                    variant: aiWon ? 'destructive' : 'default'
+                    title: 'Erro ao gerar perguntas do duelo',
+                    description: questionResult.error,
+                    variant: 'destructive',
                 });
-                setTimeout(() => endTurn(aiWon, 'ai', targetTile!), 1500)
-            }, 2000);
+                setTurn('player');
+                setGameState('playing');
+                return;
+            }
+
+            const totalDuelTime = DUEL_TIME_PER_QUESTION * questionResult.length;
+            setActiveTile(targetTile);
+            setActiveQuestion(questionResult[0]);
+            setDuel({
+                challenger: 'ai',
+                questions: questionResult,
+                activeQuestionIndex: 0,
+                playerCorrect: 0,
+                aiCorrect: 0,
+                timeRemaining: totalDuelTime,
+            });
+            setGameState('duel');
         } else {
             toast({
                 title: `Turno da IA`,
