@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { generateFloor as generateFloorAction, generateQuestion as generateQuestionAction } from '@/lib/actions';
 import type { GameDifficulty, Player, Territory, Question, DuelState, TileData } from '@/lib/types';
+import { getGridSize, getNeighbors } from '@/lib/grid';
 import { GameSetup } from '@/components/game-setup';
 import { GameBoard } from '@/components/game-board';
 import { Scoreboard } from '@/components/scoreboard';
@@ -17,27 +18,15 @@ import { Progress } from '@/components/ui/progress';
 
 type GameState = 'setup' | 'loading_board' | 'playing' | 'fetching_question' | 'ai_turn' | 'question' | 'duel' | 'finished';
 
-const DUEL_TIME_PER_QUESTION = 15; // seconds
+const DUEL_TIME_PER_QUESTION = 15;
 const MIN_DUEL_QUESTIONS = 5;
 
-const getGridSize = (territoryCount: number): { rows: number, cols: number } => {
-  if (territoryCount <= 0) return { rows: 0, cols: 0 };
-  const sqrt = Math.sqrt(territoryCount);
-  if (Number.isInteger(sqrt)) {
-    return { rows: sqrt, cols: sqrt };
-  }
-  
-  let cols = Math.ceil(sqrt);
-  while (territoryCount % cols !== 0 && cols < territoryCount) {
-    cols++;
-  }
-  
-  if (territoryCount % cols !== 0) {
-      return { rows: 1, cols: territoryCount };
-  }
-  
-  const rows = territoryCount / cols;
-  return { rows, cols };
+// Accuracy da IA por difficulty: [easy, medium, hard, epic]
+const AI_ACCURACY: Record<GameDifficulty, number> = {
+  easy: 0.45,
+  medium: 0.60,
+  hard: 0.75,
+  epic: 0.90,
 };
 
 const loadingMessages = [
@@ -200,6 +189,15 @@ export default function PlayPage() {
   const handleTileClick = async (tile: TileData) => {
     if (gameState !== 'playing' || turn !== 'player') return;
 
+    // Verificação de adjacência: só permite clicar tiles adjacentes ao jogador
+    const playerTileIds = board.filter(t => t.owner === 'player').map(t => t.id);
+    const isAdjacent = getNeighbors(tile.id, gridSize.cols, gridSize.rows).some(n => playerTileIds.includes(n));
+
+    if (tile.owner === 'unowned' && !isAdjacent) {
+      toast({ title: 'Casa inválida', description: 'Só pode conquistar casas adjacentes às suas.', variant: 'destructive' });
+      return;
+    }
+
     setActiveTile(tile);
     setGameState('fetching_question');
 
@@ -260,8 +258,9 @@ export default function PlayPage() {
     }
 
     if (gameState === 'duel' && duel) {
+      const aiAcc = AI_ACCURACY[difficulty];
       const newPlayerCorrect = duel.playerCorrect + (correct ? 1 : 0);
-      const aiResponseCorrect = Math.random() > 0.35; 
+      const aiResponseCorrect = Math.random() < aiAcc;
       const newAiCorrect = duel.aiCorrect + (aiResponseCorrect ? 1 : 0);
 
       const nextQuestionIndex = duel.activeQuestionIndex + 1;
@@ -309,18 +308,6 @@ export default function PlayPage() {
     setActiveQuestion(null);
     setDuel(null);
   };
-  
-  const getNeighbors = useCallback((tileId: number, cols: number, rows: number) => {
-      if (cols === 0 || rows === 0) return [];
-      const r = Math.floor(tileId / cols);
-      const c = tileId % cols;
-      const neighbors = [];
-      if (r > 0) neighbors.push(tileId - cols); // top
-      if (r < rows - 1) neighbors.push(tileId + cols); // bottom
-      if (c > 0) neighbors.push(tileId - 1); // left
-      if (c < cols - 1) neighbors.push(tileId + 1); // right
-      return neighbors;
-  }, []);
   
   useEffect(() => {
     if (gameState === 'duel' && duel && duel.timeRemaining > 0) {
@@ -440,8 +427,9 @@ export default function PlayPage() {
             setTimeout(() => {
                 let aiCorrect = 0;
                 let playerCorrect = 0;
+                const aiAcc = AI_ACCURACY[difficulty];
                 for(let i = 0; i < numQuestions; i++){
-                    if (Math.random() > 0.35) aiCorrect++;
+                    if (Math.random() < aiAcc) aiCorrect++;
                     if (Math.random() > 0.5) playerCorrect++;
                 }
 
@@ -460,7 +448,7 @@ export default function PlayPage() {
                 title: `Turno da IA`,
                 description: `A IA tenta conquistar o território neutro de "${theme}".`,
             });
-            const isCorrect = Math.random() > 0.35;
+            const isCorrect = Math.random() < AI_ACCURACY[difficulty];
             setTimeout(() => {
                 if (isCorrect) playAudio('/sounds/correct.mp3');
                 else playAudio('/sounds/incorrect.mp3');
@@ -473,7 +461,7 @@ export default function PlayPage() {
         }
     }, 1500);
     return () => clearTimeout(aiTurnTimeout);
-  }, [gameState, turn, board, gridSize, getNeighbors, endTurn, toast, playAudio]);
+  }, [gameState, turn, board, gridSize, endTurn, toast, playAudio, difficulty]);
 
   if (gameState === 'setup') {
     return <GameSetup onStart={handleGameStart} lastDifficulty={difficulty} lastLanguage={language} />;

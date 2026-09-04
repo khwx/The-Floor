@@ -35,7 +35,7 @@ export function GameOverDialog({ isOpen, winner, scores, onPlayAgain }: GameOver
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onPlayAgain()}>
-      <DialogContent>
+      <DialogContent onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
         <DialogHeader className="items-center text-center">
           <div className="mb-4">{icon}</div>
           <DialogTitle className="text-4xl font-bold">{title}</DialogTitle>

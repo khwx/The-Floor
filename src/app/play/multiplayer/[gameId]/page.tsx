@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, use } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { GameState, PlayerRole, TileData, Question } from '@/lib/types';
+import { getGridSize } from '@/lib/grid';
 import { Loader2 } from 'lucide-react';
 import { Scoreboard } from '@/components/scoreboard';
 import { GameBoard } from '@/components/game-board';
@@ -11,23 +12,6 @@ import { useToast } from '@/hooks/use-toast';
 import { handleTileClick, submitAnswer, endDuelForPlayer } from '@/lib/actions';
 import { QuestionModal } from '@/components/question-modal';
 import { GameOverDialog } from '@/components/game-over-dialog';
-
-const getGridSize = (territoryCount: number): { rows: number, cols: number } => {
-  if (territoryCount <= 0) return { rows: 0, cols: 0 };
-  const sqrt = Math.sqrt(territoryCount);
-  if (Number.isInteger(sqrt)) {
-    return { rows: sqrt, cols: sqrt };
-  }
-  let cols = Math.ceil(sqrt);
-  while (territoryCount % cols !== 0 && cols < territoryCount) {
-    cols++;
-  }
-  if (territoryCount % cols !== 0) {
-    return { rows: 1, cols: territoryCount };
-  }
-  const rows = territoryCount / cols;
-  return { rows, cols };
-};
 
 export default function MultiplayerGamePage({ params }: { params: Promise<{ gameId: string }> }) {
   const { gameId } = use(params);
