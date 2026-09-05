@@ -9,7 +9,7 @@ Legenda: ✅ Feito | 🔨 Em curso | ⏳ Pendente
 - ⏳ Transações Firestore com fetchs de rede (timeout risk ~30s)
 - ⏳ Background generation em serverless (pode ser killed)
 - ✅ Jogador pode clicar tiles não adjacentes → fix adjacency check em handleTileClick
-- ⏳ Game ID collision (6 chars, sem check de existência)
+- ✅ Game ID collision → 8 chars cryptographically secure + collision check com retry
 
 ## 🎯 FUNCIONALIDADES EM FALTA (P1)
 - ✅ IA difficulty não reflete accuracy → AI_ACCURACY por difficulty (45/60/75/90%)

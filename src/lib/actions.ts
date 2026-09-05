@@ -7,6 +7,17 @@ import type { GameDifficulty, Territory, Question, GameState, PlayerRole, TileDa
 import { db } from './firebase';
 import { doc, setDoc, getDoc, updateDoc, runTransaction } from 'firebase/firestore';
 
+// Caracteres sem ambiguidade (sem 0/O, 1/I/L)
+const GAME_ID_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const GAME_ID_LENGTH = 8;
+const MAX_RETRIES = 5;
+
+function generateSecureGameId(): string {
+  const array = new Uint8Array(GAME_ID_LENGTH);
+  globalThis.crypto.getRandomValues(array);
+  return Array.from(array, (byte) => GAME_ID_CHARS[byte % GAME_ID_CHARS.length]).join('');
+}
+
 export async function generateFloor(
   difficulty: GameDifficulty,
   language: string
@@ -105,15 +116,6 @@ export async function getImageForQuery(query: string): Promise<{ url: string } |
   }
 }
 
-function generateGameId(length = 6) {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = '';
-  for (let i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-}
-
 export type ActionResult = { success: true; gameId: string } | { success: false; error: string };
 
 export async function createGameSession(formData: FormData): Promise<ActionResult> {
@@ -124,7 +126,19 @@ export async function createGameSession(formData: FormData): Promise<ActionResul
       return { success: false, error: 'Dificuldade e idioma são obrigatórios.' };
   }
 
-  const gameId = generateGameId();
+  // Gera ID único com collision check (até MAX_RETRIES tentativas)
+  let gameId: string;
+  let attempts = 0;
+  do {
+    gameId = generateSecureGameId();
+    const existing = await getDoc(doc(db, 'games', gameId));
+    if (!existing.exists()) break;
+    attempts++;
+  } while (attempts < MAX_RETRIES);
+
+  if (attempts >= MAX_RETRIES) {
+    return { success: false, error: 'Não foi possível gerar um código único. Tente novamente.' };
+  }
   
   const initialGameState: GameState = {
     gameId,
@@ -155,7 +169,7 @@ export async function createGameSession(formData: FormData): Promise<ActionResul
 export async function joinGameSession(formData: FormData): Promise<ActionResult> {
     const gameId = (formData.get('gameId') as string)?.toUpperCase();
 
-    if (!gameId || gameId.length !== 6) {
+    if (!gameId || gameId.length < 6 || gameId.length > 8) {
         return { success: false, error: 'Código de jogo inválido.' };
     }
 

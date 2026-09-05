@@ -141,8 +141,8 @@ function JoinGameForm() {
                         <Input
                             id="gameId"
                             name="gameId"
-                            placeholder="ABCDEF"
-                            maxLength={6}
+                            placeholder="ABCDEFGH"
+                            maxLength={8}
                             required
                             className="text-center tracking-[0.5em] uppercase text-lg font-bold"
                         />
