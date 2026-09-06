@@ -20,10 +20,11 @@ function generateSecureGameId(): string {
 
 export async function generateFloor(
   difficulty: GameDifficulty,
-  language: string
+  language: string,
+  categories?: string[]
 ): Promise<{ territories: Territory[] } | { error: string }> {
   try {
-    const result = await generateThemedFloor({ difficulty, language });
+    const result = await generateThemedFloor({ difficulty, language, categories });
     if (!result.floorDivision) {
       return { error: 'Failed to generate floor from AI.' };
     }

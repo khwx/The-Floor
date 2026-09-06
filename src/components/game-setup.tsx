@@ -6,11 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import type { GameDifficulty, Player } from '@/lib/types';
-import { Languages, SlidersHorizontal, UserSquare, Bot, User } from 'lucide-react';
+import { Languages, SlidersHorizontal, UserSquare, Bot, User, Layers, CheckSquare, Square } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
+import { allCategories } from '@/lib/categories';
+import { cn } from '@/lib/utils';
 
 type GameSetupProps = {
-  onStart: (difficulty: GameDifficulty, language: string, startingPlayer: Player) => void;
+  onStart: (difficulty: GameDifficulty, language: string, startingPlayer: Player, categories?: string[]) => void;
   lastDifficulty?: GameDifficulty;
   lastLanguage?: string;
   mode?: 'singleplayer' | 'multiplayer';
@@ -20,6 +22,7 @@ export function GameSetup({ onStart, lastDifficulty, lastLanguage, mode = 'singl
   const [difficulty, setDifficulty] = useState<GameDifficulty>('easy');
   const [language, setLanguage] = useState<string>('Portuguese');
   const [startingPlayer, setStartingPlayer] = useState<Player>('player');
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const storageSuffix = mode === 'multiplayer' ? '-multiplayer' : '';
@@ -39,10 +42,27 @@ export function GameSetup({ onStart, lastDifficulty, lastLanguage, mode = 'singl
     }
   }, [lastDifficulty, lastLanguage, mode]);
 
+  const toggleCategory = (category: string) => {
+    setSelectedCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(category)) {
+        next.delete(category);
+      } else {
+        next.add(category);
+      }
+      return next;
+    });
+  };
+
+  const selectAll = () => setSelectedCategories(new Set(allCategories));
+  const clearAll = () => setSelectedCategories(new Set());
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const startPlayerForMode = mode === 'multiplayer' ? 'player1' : startingPlayer;
-    onStart(difficulty, language, startPlayerForMode);
+    // Se nenhuma categorias selecionada, usa todas (comportamento default)
+    const categories = selectedCategories.size > 0 ? Array.from(selectedCategories) : undefined;
+    onStart(difficulty, language, startPlayerForMode, categories);
   };
 
   return (
@@ -118,6 +138,55 @@ export function GameSetup({ onStart, lastDifficulty, lastLanguage, mode = 'singl
                   <SelectItem value="German" className="text-lg">Deutsch</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-lg flex items-center gap-2">
+                <Layers size={20} /> Categorias do Tabuleiro
+                <span className="text-sm font-normal text-muted-foreground">
+                  ({selectedCategories.size > 0 ? `${selectedCategories.size} selecionadas` : 'Todas (106)'})
+                </span>
+              </Label>
+              <CardDescription>Escolha as categorias que quer no tabuleiro. Se não escolher nenhuma, são usadas todas.</CardDescription>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-1 text-xs"
+                  onClick={selectAll}
+                >
+                  <CheckSquare className="h-3.5 w-3.5" /> Todas
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-1 text-xs"
+                  onClick={clearAll}
+                >
+                  <Square className="h-3.5 w-3.5" /> Limpar
+                </Button>
+              </div>
+              <div className="max-h-40 overflow-y-auto rounded-md border border-border p-2 space-y-1 bg-background/50">
+                {allCategories.map((category) => {
+                  const isSelected = selectedCategories.has(category);
+                  return (
+                    <button
+                      key={category}
+                      type="button"
+                      onClick={() => toggleCategory(category)}
+                      className={cn(
+                        'w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors',
+                        isSelected
+                          ? 'bg-primary text-primary-foreground'
+                          : 'hover:bg-muted text-foreground'
+                      )}
+                    >
+                      {category}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <Button type="submit" className="w-full" size="lg">
               Começar Jogo

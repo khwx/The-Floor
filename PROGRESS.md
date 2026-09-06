@@ -33,18 +33,28 @@
 - **Push OK:** `main` -> `origin/main`
 
 ## 4 Set 2026 - Fix P0: Game ID collision
-- **Commit:** pendente
+- **Commit:** `b322da7` - `fix: Game ID collision - crypto secure 8 chars + collision check`
 - **Feito:**
   - actions.ts: generateGameId reescrito com crypto.getRandomValues (8 chars, sem ambiguidade)
   - createGameSession: collision check com getDoc + retry (até 5 tentativas)
   - joinGameSession: validação aceita 6-8 chars (backward compat)
   - game-lobby.tsx: input maxLength atualizado para 8
+- **Push OK:** `main` -> `origin/main`
+
+## 5 Set 2026 - Feature P1: Seleção de categorias pelo jogador
+- **Commit:** pendente
+- **Feito:**
+  - game-setup.tsx: seletor de categorias com scroll (106 categorias), botões Todas/Limpar, contador
+  - actions.ts: generateFloor aceita categories opcional
+  - generate-themed-floor.ts: aceita categories, fallback para allCategories se vazio
+  - play/page.tsx: handleGameStart passa categories, guarda em localStorage
 - **Push OK:** pendente
+
+## Pendente (análise completa)
 - V1 - Refactorizar play/page.tsx em hooks menores
 - V1 - Firestore transação sem fetchs de rede (timeout risk)
 - V1 - Autenticação (server actions públicas)
 - V2 - Modo equipas
-- V2 - Seleção de categorias pelo jogador
 - V2 - Supabase para ranking/histórico
 - V3 - Keyboard navigation para tiles
 - V3 - i18n completo

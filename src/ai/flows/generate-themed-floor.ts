@@ -33,9 +33,10 @@ const GenerateThemedFloorOutputSchema = z.object({
 export type GenerateThemedFloorOutput = z.infer<typeof GenerateThemedFloorOutputSchema>;
 
 export async function generateThemedFloor(
-  input: Omit<GenerateThemedFloorInput, 'categories'>
+  input: Omit<GenerateThemedFloorInput, 'categories'> & { categories?: string[] }
 ): Promise<GenerateThemedFloorOutput> {
-  return generateThemedFloorFlow({...input, categories: allCategories});
+  const categories = input.categories && input.categories.length > 0 ? input.categories : allCategories;
+  return generateThemedFloorFlow({ difficulty: input.difficulty, language: input.language, categories });
 }
 
 const prompt = ai.definePrompt({

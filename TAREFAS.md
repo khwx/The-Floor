@@ -14,7 +14,7 @@ Legenda: ✅ Feito | 🔨 Em curso | ⏳ Pendente
 ## 🎯 FUNCIONALIDADES EM FALTA (P1)
 - ✅ IA difficulty não reflete accuracy → AI_ACCURACY por difficulty (45/60/75/90%)
 - ⏳ Modo equipas (blueprint: "Team Play Mode")
-- ⏳ Seleção de categorias pelo jogador (blueprint: "Category Selection")
+- ✅ Seleção de categorias pelo jogador → seletor com 106 categorias no GameSetup
 - ⏳ Supabase integration (schema pronto, client pronto, zero usage no game logic)
 
 ## 🖼️ UX / UI (P2)

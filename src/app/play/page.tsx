@@ -147,7 +147,7 @@ export default function PlayPage() {
     }, 1500);
   }, [endTurn, toast]);
 
-  const handleGameStart = useCallback(async (diff: GameDifficulty, lang: string, startPlayer: Player) => {
+  const handleGameStart = useCallback(async (diff: GameDifficulty, lang: string, startPlayer: Player, categories?: string[]) => {
     setGameState('loading_board');
     setLanguage(lang);
     setDifficulty(diff);
@@ -155,8 +155,13 @@ export default function PlayPage() {
     
     localStorage.setItem('tile-takeover-difficulty', diff);
     localStorage.setItem('tile-takeover-language', lang);
+    if (categories) {
+      localStorage.setItem('tile-takeover-categories', JSON.stringify(categories));
+    } else {
+      localStorage.removeItem('tile-takeover-categories');
+    }
 
-    const result = await generateFloorAction(diff, lang);
+    const result = await generateFloorAction(diff, lang, categories);
     if ('error' in result) {
       toast({
         title: 'Erro a criar o tabuleiro',
