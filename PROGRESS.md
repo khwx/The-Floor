@@ -42,17 +42,25 @@
 - **Push OK:** `main` -> `origin/main`
 
 ## 5 Set 2026 - Feature P1: Seleção de categorias pelo jogador
-- **Commit:** pendente
+- **Commit:** `d314ff2` - `feat: seleção de categorias pelo jogador (P1 blueprint)`
 - **Feito:**
   - game-setup.tsx: seletor de categorias com scroll (106 categorias), botões Todas/Limpar, contador
   - actions.ts: generateFloor aceita categories opcional
   - generate-themed-floor.ts: aceita categories, fallback para allCategories se vazio
   - play/page.tsx: handleGameStart passa categories, guarda em localStorage
+- **Push OK:** `main` -> `origin/main`
+
+## 5 Set 2026 - Fix P0: Firestore transações + background generation
+- **Commit:** pendente
+- **Feito:**
+  - handleTileClick: gera perguntas + imagens ANTES da transação (elimina timeout risk)
+  - joinGameSession: await generateFloor síncrono (elimina fire-and-forget .then() chain)
+  - Transação agora só faz escrita, zero chamadas de rede/IA
+  - Serverless-safe: não há background promises que podem ser killed
 - **Push OK:** pendente
 
 ## Pendente (análise completa)
 - V1 - Refactorizar play/page.tsx em hooks menores
-- V1 - Firestore transação sem fetchs de rede (timeout risk)
 - V1 - Autenticação (server actions públicas)
 - V2 - Modo equipas
 - V2 - Supabase para ranking/histórico

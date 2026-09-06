@@ -189,38 +189,34 @@ export async function joinGameSession(formData: FormData): Promise<ActionResult>
           return { success: false, error: 'Este jogo já está cheio.' };
       }
       
+      // Marca player2 como a entrar e status generating
       await updateDoc(gameDocRef, {
         'players.player2': 'player2_id_joining',
         'status': 'generating'
       });
 
-      // Start generation in background
-      generateFloor(gameState.difficulty, gameState.language).then(async floorResult => {
-          if('error' in floorResult) {
-            console.error(`Failed to generate floor for game ${gameId}: ${floorResult.error}`);
-            await updateDoc(gameDocRef, { status: 'error', errorMessage: floorResult.error });
-            return;
-          }
+      // Gera o floor e cria o board ANTES de responder (await, não fire-and-forget)
+      const floorResult = await generateFloor(gameState.difficulty, gameState.language);
+      
+      if ('error' in floorResult) {
+        await updateDoc(gameDocRef, { status: 'error', errorMessage: floorResult.error });
+        return { success: false, error: `Falha ao gerar tabuleiro: ${floorResult.error}` };
+      }
 
-          const initialBoard: TileData[] = floorResult.territories.map((t, i) => ({
-            id: i,
-            theme: t.theme,
-            owner: 'unowned'
-          }));
-          
-          initialBoard[0].owner = 'player1';
-          initialBoard[initialBoard.length - 1].owner = 'player2';
+      const initialBoard: TileData[] = floorResult.territories.map((t, i) => ({
+        id: i,
+        theme: t.theme,
+        owner: 'unowned'
+      }));
+      
+      initialBoard[0].owner = 'player1';
+      initialBoard[initialBoard.length - 1].owner = 'player2';
 
-          await updateDoc(gameDocRef, {
-            board: initialBoard,
-            scores: { player1: 1, player2: 1 },
-            status: 'playing',
-            'players.player2': 'player2_id',
-          });
-      }).catch(async (e) => {
-          console.error("Error during board generation promise:", e);
-          const errorMsg = e instanceof Error ? e.message : "Failed to generate board";
-           await updateDoc(gameDocRef, { status: 'error', errorMessage: errorMsg });
+      await updateDoc(gameDocRef, {
+        board: initialBoard,
+        scores: { player1: 1, player2: 1 },
+        status: 'playing',
+        'players.player2': 'player2_id',
       });
 
       return { success: true, gameId };
@@ -228,41 +224,51 @@ export async function joinGameSession(formData: FormData): Promise<ActionResult>
     } catch (error) {
        console.error("Failed to join game session in Firestore:", error);
        const errorMessage = error instanceof Error ? error.message : 'Could not join game in database.';
+       await updateDoc(gameDocRef, { status: 'error', errorMessage });
        return { success: false, error: errorMessage };
     }
 }
 
 export async function handleTileClick(gameId: string, tileId: number, player: PlayerRole) {
   try {
+    // 1. Primeiro lê o jogo (fora da transação) para validar turno e obter tema
+    const gameDocRef = doc(db, 'games', gameId);
+    const gameDoc = await getDoc(gameDocRef);
+
+    if (!gameDoc.exists()) throw new Error("Jogo não encontrado");
+    const gameState = gameDoc.data() as GameState;
+
+    if (gameState.status !== 'playing' || gameState.turn !== player) {
+      throw new Error("Não é a sua vez de jogar ou o jogo não está ativo.");
+    }
+    
+    const tile = gameState.board.find(t => t.id === tileId);
+    if (!tile) throw new Error("Casa não encontrada");
+    
+    const isDuel = tile.owner !== 'unowned' && tile.owner !== player;
+    const questionTheme = tile.theme;
+
+    let questionCount = 1;
+    if (isDuel) {
+      const opponent = player === 'player1' ? 'player2' : 'player1';
+      const territoryCount = gameState.board.filter(t => t.owner === opponent && t.theme === questionTheme).length;
+      questionCount = Math.max(1, territoryCount);
+    }
+
+    // 2. Gera perguntas + busca imagens FORA da transação (evita timeout)
+    const questions = await generateQuestionsWithImages(questionTheme, gameState.language, questionCount);
+    if ('error' in questions) {
+      throw new Error(questions.error);
+    }
+
+    // 3. Atualiza o jogo dentro da transação (apenas escrita, sem chamadas de rede)
     await runTransaction(db, async (transaction) => {
-      const gameDocRef = doc(db, 'games', gameId);
-      const gameDoc = await transaction.get(gameDocRef);
-
-      if (!gameDoc.exists()) throw new Error("Jogo não encontrado");
-      const gameState = gameDoc.data() as GameState;
-
-      if (gameState.status !== 'playing' || gameState.turn !== player) {
-        throw new Error("Não é a sua vez de jogar ou o jogo não está ativo.");
-      }
+      const freshDoc = await transaction.get(gameDocRef);
+      if (!freshDoc.exists()) throw new Error("Jogo não encontrado");
+      const freshState = freshDoc.data() as GameState;
       
-      const tile = gameState.board.find(t => t.id === tileId);
-      if (!tile) throw new Error("Casa não encontrada");
-      
-      const isDuel = tile.owner !== 'unowned' && tile.owner !== player;
-      const questionTheme = tile.theme;
-
-      transaction.update(gameDocRef, { status: 'processing' });
-
-      let questionCount = 1;
-      if (isDuel) {
-        const opponent = player === 'player1' ? 'player2' : 'player1';
-        const territoryCount = gameState.board.filter(t => t.owner === opponent && t.theme === questionTheme).length;
-        questionCount = Math.max(1, territoryCount);
-      }
-
-      const questions = await generateQuestionsWithImages(questionTheme, gameState.language, questionCount);
-      if ('error' in questions) {
-        throw new Error(questions.error);
+      if (freshState.status !== 'playing' || freshState.turn !== player) {
+        throw new Error("Estado do jogo mudou. Tente novamente.");
       }
 
       if (isDuel) {

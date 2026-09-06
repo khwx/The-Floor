@@ -6,8 +6,8 @@ Legenda: ✅ Feito | 🔨 Em curso | ⏳ Pendente
 
 ## 🐛 BUGS CRÍTICOS (P0)
 - ✅ IA nunca pergunta ao jogador nos duelos → agora gera perguntas reais via AI + QuestionModal
-- ⏳ Transações Firestore com fetchs de rede (timeout risk ~30s)
-- ⏳ Background generation em serverless (pode ser killed)
+- ✅ Transações Firestore com fetchs de rede → handleTileClick: gera perguntas + imagens ANTES da transação
+- ✅ Background generation em serverless → joinGameSession: await generateFloor (síncrono)
 - ✅ Jogador pode clicar tiles não adjacentes → fix adjacency check em handleTileClick
 - ✅ Game ID collision → 8 chars cryptographically secure + collision check com retry
 
