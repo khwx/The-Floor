@@ -15,7 +15,7 @@ Legenda: ✅ Feito | 🔨 Em curso | ⏳ Pendente
 - ✅ IA difficulty não reflete accuracy → AI_ACCURACY por difficulty (45/60/75/90%)
 - ⏳ Modo equipas (blueprint: "Team Play Mode")
 - ✅ Seleção de categorias pelo jogador → seletor com 106 categorias no GameSetup
-- ⏳ Supabase integration (schema pronto, client pronto, zero usage no game logic)
+- ✅ Supabase integration → saveGameToHistory + getRanking + getGameHistory em supabase.ts, auto-save no checkEndGame
 
 ## 🖼️ UX / UI (P2)
 - ✅ icons.tsx não mapeia temas PT → 106 categorias PT mapeadas + fuzzy match

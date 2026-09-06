@@ -6,6 +6,7 @@ import { generateMultipleQuestions as generateMultipleQuestionsFlow } from '@/ai
 import type { GameDifficulty, Territory, Question, GameState, PlayerRole, TileData } from './types';
 import { db } from './firebase';
 import { doc, setDoc, getDoc, updateDoc, runTransaction } from 'firebase/firestore';
+import { saveGameToHistory, isSupabaseConfigured } from './supabase';
 
 // Caracteres sem ambiguidade (sem 0/O, 1/I/L)
 const GAME_ID_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -395,14 +396,27 @@ async function checkEndGame(gameState: GameState, winnerOfTurn: PlayerRole, conq
   let winner: PlayerRole | 'draw' | null = null;
   let status: GameState['status'] = 'playing';
 
-  if (newScores.player1 === 0 || newScores.player2 === 0 || newScores.player1 + newScores.player2 === newBoard.length) {
+if (newScores.player1 === 0 || newScores.player2 === 0 || newScores.player1 + newScores.player2 === newBoard.length) {
       if (newScores.player1 > newScores.player2) winner = 'player1';
       else if (newScores.player2 > newScores.player1) winner = 'player2';
       else winner = 'draw';
       status = 'finished';
-  }
-  
-  const nextTurn = tileWasConquered ? winnerOfTurn : (gameState.turn === 'player1' ? 'player2' : 'player1');
+    }
+   
+   // Se o jogo terminou, salva no histórico Supabase (fire-and-forget, não bloqueia)
+   if (status === 'finished' && isSupabaseConfigured()) {
+     const totalScores = { player1: newScores.player1, player2: newScores.player2 };
+     saveGameToHistory({
+       gameId: gameState.gameId,
+       winner,
+       difficulty: gameState.difficulty,
+       language: gameState.language,
+       scores: totalScores,
+       board: newBoard,
+     }).catch(console.error);
+   }
+   
+   const nextTurn = tileWasConquered ? winnerOfTurn : (gameState.turn === 'player1' ? 'player2' : 'player1');
 
   return {
     board: newBoard,

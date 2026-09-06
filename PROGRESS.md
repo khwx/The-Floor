@@ -51,19 +51,26 @@
 - **Push OK:** `main` -> `origin/main`
 
 ## 5 Set 2026 - Fix P0: Firestore transações + background generation
-- **Commit:** pendente
+- **Commit:** `5ae768d` - `fix: P0 bugs - transação Firestore sem fetchs + background generation await`
 - **Feito:**
   - handleTileClick: gera perguntas + imagens ANTES da transação (elimina timeout risk)
   - joinGameSession: await generateFloor síncrono (elimina fire-and-forget .then() chain)
   - Transação agora só faz escrita, zero chamadas de rede/IA
   - Serverless-safe: não há background promises que podem ser killed
+- **Push OK:** `main` -> `origin/main`
+
+## 6 Set 2026 - Feature P1: Supabase integration (ranking/histórico)
+- **Commit:** pendente
+- **Feito:**
+  - supabase.ts: saveGameToHistory + getRanking + getGameHistory
+  - actions.ts: auto-save no checkEndGame quando jogo termina (fire-and-forget)
+  - game_history table pronta no schema.sql
 - **Push OK:** pendente
 
 ## Pendente (análise completa)
 - V1 - Refactorizar play/page.tsx em hooks menores
 - V1 - Autenticação (server actions públicas)
 - V2 - Modo equipas
-- V2 - Supabase para ranking/histórico
 - V3 - Keyboard navigation para tiles
 - V3 - i18n completo
 - V3 - Sons com toggle mute

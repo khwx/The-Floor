@@ -1,5 +1,16 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
+export type GameHistoryRecord = {
+  id: string;
+  game_id: string | null;
+  winner: string | null;
+  difficulty: string | null;
+  language: string | null;
+  scores: Record<string, number> | null;
+  board: unknown | null;
+  created_at: string;
+};
+
 // Cliente para uso no Browser (Client Components)
 // Usa NEXT_PUBLIC_ vars - seguro expor anon key
 export function createSupabaseBrowserClient(): SupabaseClient | null {
@@ -57,4 +68,72 @@ export function isSupabaseConfigured(): boolean {
   return !!(
     process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   );
+}
+
+// Salva jogo terminado no histórico Supabase
+export async function saveGameToHistory(params: {
+  gameId: string;
+  winner: string | null;
+  difficulty: string;
+  language: string;
+  scores: Record<string, number>;
+  board: unknown;
+}): Promise<{ error: string } | { success: true }> {
+  const supabase = createSupabaseServerClient();
+  if (!supabase) return { error: 'Supabase não configurado' };
+
+  try {
+    const { error } = await supabase.from('game_history').insert({
+      game_id: params.gameId,
+      winner: params.winner,
+      difficulty: params.difficulty,
+      language: params.language,
+      scores: params.scores,
+      board: params.board,
+    });
+
+    if (error) return { error: error.message };
+    return { success: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Erro ao salvar histórico' };
+  }
+}
+
+// Busca ranking/histórico (top N por score)
+export async function getRanking(limit = 20): Promise<GameHistoryRecord[]> {
+  const supabase = createSupabaseServerClient();
+  if (!supabase) return [];
+
+  try {
+    // Score total = soma dos scores dos jogadores
+    const { data, error } = await supabase
+      .from('game_history')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error || !data) return [];
+    return data as GameHistoryRecord[];
+  } catch {
+    return [];
+  }
+}
+
+// Busca histórico de um jogo específico
+export async function getGameHistory(gameId: string): Promise<GameHistoryRecord | null> {
+  const supabase = createSupabaseServerClient();
+  if (!supabase) return null;
+
+  try {
+    const { data, error } = await supabase
+      .from('game_history')
+      .select('*')
+      .eq('game_id', gameId)
+      .single();
+
+    if (error || !data) return null;
+    return data as GameHistoryRecord;
+  } catch {
+    return null;
+  }
 }
