@@ -60,11 +60,21 @@
 - **Push OK:** `main` -> `origin/main`
 
 ## 6 Set 2026 - Feature P1: Supabase integration (ranking/histórico)
-- **Commit:** pendente
+- **Commit:** `b445dbd` - `feat: Supabase integration - ranking/histórico (P1)`
 - **Feito:**
   - supabase.ts: saveGameToHistory + getRanking + getGameHistory
   - actions.ts: auto-save no checkEndGame quando jogo termina (fire-and-forget)
   - game_history table pronta no schema.sql
+- **Push OK:** `main` -> `origin/main`
+
+## 6 Set 2026 - Feature P2: Visibilidade do turno da IA
+- **Commit:** pendente
+- **Feito:**
+  - play/page.tsx: 3 fases de feedback visual
+  - Fase 1 (800ms): "A analisar o tabuleiro..."
+  - Fase 2 (1000ms): "A preparar desafio em X..." ou "A atacar X..."
+  - Fase 3: Executa ação (gera perguntas ou resolve conquista)
+  - Overlay mostra estado atual em tempo real
 - **Push OK:** pendente
 
 ## Pendente (análise completa)

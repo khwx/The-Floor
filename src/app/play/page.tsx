@@ -53,6 +53,7 @@ export default function PlayPage() {
   const [duel, setDuel] = useState<DuelState | null>(null);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingMessage, setLoadingMessage] = useState(loadingMessages[0]);
+  const [aiAction, setAiAction] = useState<string>('');
 
   const { toast } = useToast();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -383,42 +384,53 @@ export default function PlayPage() {
   useEffect(() => {
     if (gameState !== 'ai_turn' || turn !== 'ai' || board.length === 0) return;
 
-    const aiTurnTimeout = setTimeout(async () => {
-        const { rows, cols } = gridSize;
-        const aiTiles = board.filter(t => t.owner === 'ai');
-        let duelTargets: {tile: TileData, territorySize: number}[] = [];
-        let unownedTargets: TileData[] = [];
+    // Fase 1: Mostra o que a IA está a analisar
+    setAiAction('A analisar o tabuleiro...');
+    
+    const phase1Timeout = setTimeout(() => {
+      const { rows, cols } = gridSize;
+      const aiTiles = board.filter(t => t.owner === 'ai');
+      let duelTargets: {tile: TileData, territorySize: number}[] = [];
+      let unownedTargets: TileData[] = [];
 
-        for (const aiTile of aiTiles) {
-            const neighbors = getNeighbors(aiTile.id, cols, rows);
-            for (const neighborId of neighbors) {
-                const neighborTile = board[neighborId];
-                if (neighborTile.owner === 'player' && !duelTargets.some(t => t.tile.theme === neighborTile.theme)) {
-                    const territorySize = board.filter(t => t.owner === 'player' && t.theme === neighborTile.theme).length;
-                    duelTargets.push({ tile: neighborTile, territorySize });
-                } else if (neighborTile.owner === 'unowned' && !unownedTargets.some(t => t.id === neighborId)) {
-                    unownedTargets.push(neighborTile);
-                }
-            }
-        }
-        
-        let targetTile: TileData | null = null;
-        if (duelTargets.length > 0) {
-            duelTargets.sort((a, b) => b.territorySize - a.territorySize);
-            targetTile = duelTargets[0].tile;
-        } else if (unownedTargets.length > 0) {
-            targetTile = unownedTargets[Math.floor(Math.random() * unownedTargets.length)];
-        }
-        
-        if (!targetTile) {
-           setTurn('player');
-           setGameState('playing');
-           return;
-        }
+      for (const aiTile of aiTiles) {
+          const neighbors = getNeighbors(aiTile.id, cols, rows);
+          for (const neighborId of neighbors) {
+              const neighborTile = board[neighborId];
+              if (neighborTile.owner === 'player' && !duelTargets.some(t => t.tile.theme === neighborTile.theme)) {
+                  const territorySize = board.filter(t => t.owner === 'player' && t.theme === neighborTile.theme).length;
+                  duelTargets.push({ tile: neighborTile, territorySize });
+              } else if (neighborTile.owner === 'unowned' && !unownedTargets.some(t => t.id === neighborId)) {
+                  unownedTargets.push(neighborTile);
+              }
+          }
+      }
+      
+      let targetTile: TileData | null = null;
+      if (duelTargets.length > 0) {
+          duelTargets.sort((a, b) => b.territorySize - a.territorySize);
+          targetTile = duelTargets[0].tile;
+      } else if (unownedTargets.length > 0) {
+          targetTile = unownedTargets[Math.floor(Math.random() * unownedTargets.length)];
+      }
+      
+      if (!targetTile) {
+         setTurn('player');
+         setGameState('playing');
+         setAiAction('');
+         return;
+      }
 
-        const isDuel = targetTile.owner === 'player';
-        const theme = targetTile.theme;
-        
+      const isDuel = targetTile.owner === 'player';
+      const theme = targetTile.theme;
+      
+      // Fase 2: Mostra a decisão da IA
+      setAiAction(isDuel 
+        ? `A preparar desafio em "${theme}"...` 
+        : `A atacar "${theme}"...`);
+
+      // Fase 3: Executa a ação
+      const phase3Timeout = setTimeout(async () => {
         if (isDuel) {
             playAudio('/sounds/duel.mp3');
             const territoryCount = board.filter(t => t.owner === 'player' && t.theme === theme).length;
@@ -438,6 +450,7 @@ export default function PlayPage() {
                 });
                 setTurn('player');
                 setGameState('playing');
+                setAiAction('');
                 return;
             }
 
@@ -453,6 +466,7 @@ export default function PlayPage() {
                 timeRemaining: totalDuelTime,
             });
             setGameState('duel');
+            setAiAction('');
         } else {
             toast({
                 title: `Turno da IA`,
@@ -468,9 +482,17 @@ export default function PlayPage() {
                 });
                 setTimeout(() => endTurn(isCorrect, 'ai', targetTile!), 1500);
             }, 2000);
+            setAiAction('');
         }
-    }, 1500);
-    return () => clearTimeout(aiTurnTimeout);
+      }, 1000);
+      
+      return () => clearTimeout(phase3Timeout);
+    }, 800);
+    
+    return () => {
+      clearTimeout(phase1Timeout);
+      setAiAction('');
+    };
   }, [gameState, turn, board, gridSize, endTurn, toast, playAudio, difficulty]);
 
   if (gameState === 'setup') {
@@ -516,7 +538,9 @@ export default function PlayPage() {
            {gameState === 'ai_turn' && (
             <div className="absolute inset-0 bg-black/10 flex flex-col items-center justify-center z-10 rounded-lg pointer-events-none">
                  <Loader2 className="h-10 w-10 animate-spin text-destructive" />
-                 <p className="mt-2 font-semibold text-destructive-foreground bg-destructive/80 px-4 py-2 rounded-md">A IA está a pensar...</p>
+                 <p className="mt-2 font-semibold text-destructive-foreground bg-destructive/80 px-4 py-2 rounded-md">
+                   {aiAction || 'A IA está a pensar...'}
+                 </p>
             </div>
           )}
         </main>

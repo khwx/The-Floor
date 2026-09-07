@@ -23,7 +23,7 @@ Legenda: ✅ Feito | 🔨 Em curso | ⏳ Pendente
 - ✅ Game-over dialog: dismiss fecha dialog → bloqueado via onPointerDownOutside
 - ✅ Sem indicação visual de casas adjacentes clicáveis → borda verde dashed/glow
 - ✅ Sem feedback visual de corret/incorret no modal → banner verde/vermelho com ícones
-- ⏳ AI turn sem visibilidade (só "A IA está a pensar...")
+- ✅ AI turn sem visibilidade → 3 fases: "A analisar..." → "A preparar desafio/atacar..." → execução
 - ⏳ Sem confirmação ao sair de jogo ativo
 - ⏳ Sons sem toggle mute
 - ⏳ Loading messages hardcoded em PT (não respeita idioma)
