@@ -15,6 +15,8 @@ import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useAudio } from '@/hooks/use-audio';
 import { Progress } from '@/components/ui/progress';
+import { useLoadingState } from '@/hooks/use-loading-state';
+import { useDuelTimer } from '@/hooks/use-duel-timer';
 
 type GameState = 'setup' | 'loading_board' | 'playing' | 'fetching_question' | 'ai_turn' | 'question' | 'duel' | 'finished';
 
@@ -51,13 +53,16 @@ export default function PlayPage() {
   const [activeQuestion, setActiveQuestion] = useState<Question | null>(null);
   const [winner, setWinner] = useState<Player | 'draw' | null>(null);
   const [duel, setDuel] = useState<DuelState | null>(null);
-  const [loadingProgress, setLoadingProgress] = useState(0);
-  const [loadingMessage, setLoadingMessage] = useState(loadingMessages[0]);
   const [aiAction, setAiAction] = useState<string>('');
 
   const { toast } = useToast();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const playAudio = useAudio();
+
+  const { loadingProgress, loadingMessage } = useLoadingState({
+    isLoading: gameState === 'fetching_question',
+    activeTile,
+  });
 
   const checkEndGame = useCallback((newBoard: TileData[]) => {
     const playerScore = newBoard.filter(tile => tile.owner === 'player').length;
@@ -349,39 +354,9 @@ export default function PlayPage() {
         endDuel(duel, activeTile);
       }
     }
-  }, [gameState, duel, activeTile, endDuel, toast]);
-  
-  useEffect(() => {
-    let progressInterval: NodeJS.Timeout | null = null;
-    let messageInterval: NodeJS.Timeout | null = null;
-
-    if (gameState === 'fetching_question') {
-      setLoadingProgress(0);
-      setLoadingMessage(loadingMessages[0]);
-      const estimatedTime = (activeTile?.owner === 'ai' ? 8000 : 4000);
-
-      progressInterval = setInterval(() => {
-        setLoadingProgress(prev => {
-          if (prev >= 95) return prev;
-          return prev + 2;
-        });
-      }, estimatedTime / 50);
-      
-      messageInterval = setInterval(() => {
-        setLoadingMessage(prevMessage => {
-          const currentIndex = loadingMessages.indexOf(prevMessage);
-          const nextIndex = (currentIndex + 1) % loadingMessages.length;
-          return loadingMessages[nextIndex];
-        });
-      }, 2500);
-    }
-    return () => {
-      if (progressInterval) clearInterval(progressInterval);
-      if (messageInterval) clearInterval(messageInterval);
-    };
-  }, [gameState, activeTile]);
-
-  useEffect(() => {
+}, [gameState, duel, activeTile, endDuel, toast]);
+   
+   useEffect(() => {
     if (gameState !== 'ai_turn' || turn !== 'ai' || board.length === 0) return;
 
     // Fase 1: Mostra o que a IA está a analisar
