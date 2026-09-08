@@ -68,17 +68,25 @@
 - **Push OK:** `main` -> `origin/main`
 
 ## 6 Set 2026 - Feature P2: Visibilidade do turno da IA
-- **Commit:** pendente
+- **Commit:** `a1a80b4` - `feat: visibilidade do turno da IA (UX P2)`
 - **Feito:**
   - play/page.tsx: 3 fases de feedback visual
   - Fase 1 (800ms): "A analisar o tabuleiro..."
   - Fase 2 (1000ms): "A preparar desafio em X..." ou "A atacar X..."
   - Fase 3: Executa ação (gera perguntas ou resolve conquista)
   - Overlay mostra estado atual em tempo real
-- **Push OK:** pendente
+- **Push OK:** `main` -> `origin/main`
+
+## 6 Set 2026 - Refactor: Hooks para lógica de jogo
+- **Commit:** `5ce071e` - `feat: hooks useDuelTimer + useLoadingState para The-Floor play (duel timer, loading)`
+- **Feito:**
+  - hooks/use-duel-timer.ts: gerencia ciclo de vida do timer de duelo (interval + cleanup)
+  - hooks/use-loading-state.ts: gerencia progress bar + mensagens rotativas durante fetch de perguntas
+  - play/page.tsx: integrado ambos os hooks, removido ~80 linhas de useEffect duplicados
+- **Push OK:** `main` -> `origin/main`
 
 ## Pendente (análise completa)
-- V1 - Refactorizar play/page.tsx em hooks menores
+- V1 - Refactorizar play/page.tsx em hooks menores (useGameState, useAI, useDuel)
 - V1 - Autenticação (server actions públicas)
 - V2 - Modo equipas
 - V3 - Keyboard navigation para tiles

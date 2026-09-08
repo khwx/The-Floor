@@ -30,7 +30,8 @@ Legenda: ✅ Feito | 🔨 Em curso | ⏳ Pendente
 
 ## 🔧 CÓDIGO (P2)
 - ✅ getGridSize duplicado → extraído para src/lib/grid.ts
-- ⏳ play/page.tsx monolítico (544 linhas - refatorar em hooks)
+- 🔨 play/page.tsx refatorado: extraídos hooks useDuelTimer + useLoadingState
+- ⏳ play/page.tsx monolítico (ainda ~480 linhas - extrair useGameState, useAI, etc.)
 - ⏳ `ignoreBuildErrors` esconde erros reais
 - ⏳ Deps não usadas no package.json (recharts, date-fns, embla, etc.)
 - ⏳ toast delay 1000000ms (16min)
