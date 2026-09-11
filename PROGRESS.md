@@ -77,12 +77,13 @@
   - Overlay mostra estado atual em tempo real
 - **Push OK:** `main` -> `origin/main`
 
-## 6 Set 2026 - Refactor: Hooks para lógica de jogo
-- **Commit:** `5ce071e` - `feat: hooks useDuelTimer + useLoadingState para The-Floor play (duel timer, loading)`
+## 8 Set 2026 - Refactor: Hooks extraídos (useDuelTimer, useLoadingState)
+- **Commit:** `5ce071e`
 - **Feito:**
-  - hooks/use-duel-timer.ts: gerencia ciclo de vida do timer de duelo (interval + cleanup)
-  - hooks/use-loading-state.ts: gerencia progress bar + mensagens rotativas durante fetch de perguntas
-  - play/page.tsx: integrado ambos os hooks, removido ~80 linhas de useEffect duplicados
+  - hooks/use-duel-timer.ts: gerencia intervalo do duelo
+  - hooks/use-loading-state.ts: gerencia progresso loading
+  - play/page.tsx: integrado hooks, removido 80 linhas de useEffect duplicados
+- **Status da refatoração:** 🔨 Em curso (hook useGameState adiado pela complexidade de tipos)
 - **Push OK:** `main` -> `origin/main`
 
 ## Pendente (análise completa)
