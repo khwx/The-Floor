@@ -45,7 +45,7 @@ export function HomePageClient() {
 
 
        <footer className="mt-16 text-center text-muted-foreground text-sm">
-        <p>Inspirado no programa de TV "The Floor".</p>
+         <p>Inspirado no programa de TV &quot;The Floor&quot;.</p>
       </footer>
     </main>
   );
