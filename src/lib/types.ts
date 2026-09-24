@@ -1,8 +1,14 @@
 export type Player = 'player' | 'ai' | 'player1' | 'player2';
 export type PlayerRole = 'player1' | 'player2';
 
+export type Team = {
+    id: string;
+    name: string;
+    members: string[]; // array of user IDs
+};
+
 export type Territory = {
-  theme: string;
+    theme: string;
 };
 
 export type TileData = {
