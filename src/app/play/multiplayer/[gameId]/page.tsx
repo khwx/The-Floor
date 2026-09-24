@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, use } from 'react';
+import { useRouter } from 'next/navigation';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { GameState, PlayerRole, TileData, Question } from '@/lib/types';
@@ -14,6 +15,7 @@ import { QuestionModal } from '@/components/question-modal';
 import { GameOverDialog } from '@/components/game-over-dialog';
 
 export default function MultiplayerGamePage({ params }: { params: Promise<{ gameId: string }> }) {
+  const router = useRouter();
   const { gameId } = use(params);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -170,7 +172,7 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ game
         isOpen={gameState.status === 'finished'}
         winner={gameState.winner ?? null}
         scores={gameState.scores}
-        onPlayAgain={() => window.location.href = '/play/multiplayer'}
+        onPlayAgain={() => router.push('/play/multiplayer')}
       />
     </div>
   );

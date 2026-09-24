@@ -468,7 +468,7 @@ export default function PlayPage() {
       clearTimeout(phase1Timeout);
       setAiAction('');
     };
-  }, [gameState, turn, board, gridSize, endTurn, toast, playAudio, difficulty]);
+  }, [gameState, turn, board, gridSize, endTurn, toast, playAudio, difficulty, language]);
 
   if (gameState === 'setup') {
     return <GameSetup onStart={handleGameStart} lastDifficulty={difficulty} lastLanguage={language} />;
