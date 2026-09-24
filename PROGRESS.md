@@ -86,10 +86,17 @@
 - **Status da refatoração:** 🔨 Em curso (hook useGameState adiado pela complexidade de tipos)
 - **Push OK:** `main` -> `origin/main`
 
+## 25 Set 2026 - UX/UI: Botão Mute / Toggle de Som
+- **Commit:** pendente
+- **Feito:**
+  - `src/app/play/page.tsx`: botão toggle de som adicionado ao cabeçalho com ícones Volume2/VolumeX
+  - Integrado com `isMuted` e `toggleMute` do `useAudio` (persistido via localStorage)
+  - TAREFAS.md: tarefa marcada como concluída
+- **Push OK:** `main` -> `origin/main`
+
 ## Pendente (análise completa)
 - V1 - Refactorizar play/page.tsx em hooks menores (useGameState, useAI, useDuel)
 - V1 - Autenticação (server actions públicas)
 - V2 - Modo equipas
 - V3 - Keyboard navigation para tiles
 - V3 - i18n completo
-- V3 - Sons com toggle mute

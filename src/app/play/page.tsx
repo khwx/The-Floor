@@ -10,7 +10,7 @@ import { Scoreboard } from '@/components/scoreboard';
 import { QuestionModal } from '@/components/question-modal';
 import { GameOverDialog } from '@/components/game-over-dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Volume2, VolumeX } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useAudio } from '@/hooks/use-audio';
@@ -57,7 +57,7 @@ export default function PlayPage() {
 
   const { toast } = useToast();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const { playAudio } = useAudio();
+  const { playAudio, isMuted, toggleMute } = useAudio();
 
   const { loadingProgress, loadingMessage } = useLoadingState({
     isLoading: gameState === 'fetching_question',
@@ -487,9 +487,20 @@ export default function PlayPage() {
     <div className="flex min-h-screen flex-col items-center p-4 sm:p-6 md:p-8">
       <div className="w-full max-w-7xl">
         <header className="flex justify-between items-center mb-4">
-          <Link href="/" passHref>
-            <Button variant="outline">Voltar ao Menu</Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/" passHref>
+              <Button variant="outline">Voltar ao Menu</Button>
+            </Link>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={toggleMute}
+              title={isMuted ? 'Ativar som' : 'Desativar som'}
+              aria-label={isMuted ? 'Ativar som' : 'Desativar som'}
+            >
+              {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+            </Button>
+          </div>
           <h1 className="text-3xl font-bold text-primary hidden sm:block">Tile Takeover</h1>
           <Scoreboard scores={scores} turn={turn} />
         </header>
