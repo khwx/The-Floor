@@ -75,6 +75,7 @@ export type GameState = {
         player1: string; // user ID
         player2: string | null; // user ID
     }
+    teams?: Team[];
     winner?: PlayerRole | 'draw' | null;
     activeQuestion?: ActiveQuestionInfo | null;
     duelState?: MultiplayerDuelState | null;
