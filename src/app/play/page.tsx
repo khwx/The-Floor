@@ -57,7 +57,7 @@ export default function PlayPage() {
 
   const { toast } = useToast();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const playAudio = useAudio();
+  const { playAudio } = useAudio();
 
   const { loadingProgress, loadingMessage } = useLoadingState({
     isLoading: gameState === 'fetching_question',
