@@ -1,11 +1,14 @@
-export type Player = 'player' | 'ai' | 'player1' | 'player2';
-export type PlayerRole = 'player1' | 'player2';
+export type Player = 'player' | 'ai' | 'player1' | 'player2' | 'player3' | 'player4';
+export type PlayerRole = 'player1' | 'player2' | 'player3' | 'player4';
+export type TeamId = 'team1' | 'team2';
 
 export type Team = {
-    id: string;
+    id: TeamId;
     name: string;
-    members: string[]; // array of user IDs
+    members: PlayerRole[]; // array of player roles
 };
+
+export type GameMode = '1v1' | 'team';
 
 export type Territory = {
     theme: string;
@@ -57,6 +60,8 @@ export type MultiplayerDuelState = {
     scores: {
         player1: number;
         player2: number;
+        player3: number;
+        player4: number;
     };
     timeRemaining: number;
 }
@@ -64,19 +69,22 @@ export type MultiplayerDuelState = {
 
 export type GameState = {
     gameId: string;
+    gameMode: GameMode;
     difficulty: GameDifficulty;
     language: string;
     status: GameStatus;
     errorMessage?: string;
     board: TileData[];
-    scores: { player1: number; player2: number; };
+    scores: { player1: number; player2: number; player3: number; player4: number; };
     turn: PlayerRole;
     players: {
         player1: string; // user ID
         player2: string | null; // user ID
+        player3: string | null; // user ID
+        player4: string | null; // user ID
     }
-    teams?: Team[];
-    winner?: PlayerRole | 'draw' | null;
+    teams: Team[];
+    winner?: PlayerRole | TeamId | 'draw' | null;
     activeQuestion?: ActiveQuestionInfo | null;
     duelState?: MultiplayerDuelState | null;
 }

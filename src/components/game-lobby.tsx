@@ -8,14 +8,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { createGameSession, joinGameSession } from '@/lib/actions';
-import { Loader2, Play, Users, XCircle } from 'lucide-react';
-import type { GameDifficulty } from '@/lib/types';
+import { Loader2, Play, Users, XCircle, UserPlus } from 'lucide-react';
+import type { GameDifficulty, GameMode } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
 function CreateGameForm() {
     const router = useRouter();
     const [difficulty, setDifficulty] = useState<GameDifficulty>('easy');
     const [language, setLanguage] = useState('Portuguese');
+    const [gameMode, setGameMode] = useState<GameMode>('1v1');
     const [pending, setPending] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -25,6 +26,7 @@ function CreateGameForm() {
         setError(null);
 
         const formData = new FormData(event.currentTarget);
+        formData.set('gameMode', gameMode);
         const result = await createGameSession(formData);
 
         if (result.success) {
@@ -40,7 +42,7 @@ function CreateGameForm() {
         <Card className="shadow-lg">
             <CardHeader>
                 <CardTitle className="text-2xl flex items-center gap-2"><Users className="text-primary"/> Criar Jogo</CardTitle>
-                <CardDescription>Crie uma nova sala de jogo e convide um amigo para jogar.</CardDescription>
+                <CardDescription>Crie uma nova sala de jogo e convide amigos para jogar.</CardDescription>
             </CardHeader>
             <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -51,6 +53,18 @@ function CreateGameForm() {
                             <AlertDescription>{error}</AlertDescription>
                         </Alert>
                     )}
+                    <div className="space-y-2">
+                        <Label htmlFor="gameMode-create">Modo de Jogo</Label>
+                        <Select name="gameMode" onValueChange={(value: GameMode) => setGameMode(value)} value={gameMode} required>
+                            <SelectTrigger id="gameMode-create">
+                                <SelectValue placeholder="Selecione o modo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="1v1">1v1 (2 Jogadores)</SelectItem>
+                                <SelectItem value="team">Equipas (4 Jogadores - 2v2)</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                     <div className="space-y-2">
                         <Label htmlFor="difficulty-create">Dificuldade</Label>
                         <Select name="difficulty" onValueChange={(value: GameDifficulty) => setDifficulty(value)} value={difficulty} required>
@@ -113,6 +127,8 @@ function JoinGameForm() {
         const result = await joinGameSession(formData);
 
         if (result.success) {
+            // The player slot is determined server-side, but we store a default
+            // The actual slot will be determined by the server
             sessionStorage.setItem(`tile-takeover-player-role-${result.gameId}`, 'player2');
             router.push(`/play/multiplayer/${result.gameId}`);
         } else {

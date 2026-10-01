@@ -3,7 +3,7 @@
 import { generateThemedFloor } from '@/ai/flows/generate-themed-floor';
 import { generateQuestion as generateSingleQuestionFlow, type GenerateQuestionOutput } from '@/ai/flows/generate-question';
 import { generateMultipleQuestions as generateMultipleQuestionsFlow } from '@/ai/flows/generate-multiple-questions';
-import type { GameDifficulty, Territory, Question, GameState, PlayerRole, TileData } from './types';
+import type { GameDifficulty, Territory, Question, GameState, PlayerRole, TileData, Team, GameMode, TeamId } from './types';
 import { db } from './firebase';
 import { doc, setDoc, getDoc, updateDoc, runTransaction } from 'firebase/firestore';
 import { saveGameToHistory, isSupabaseConfigured } from './supabase';
@@ -123,6 +123,7 @@ export type ActionResult = { success: true; gameId: string } | { success: false;
 export async function createGameSession(formData: FormData): Promise<ActionResult> {
   const difficulty = formData.get('difficulty') as GameDifficulty;
   const language = formData.get('language') as string;
+  const gameMode = (formData.get('gameMode') as GameMode) || '1v1';
   
   if (!difficulty || !language) {
       return { success: false, error: 'Dificuldade e idioma são obrigatórios.' };
@@ -141,18 +142,28 @@ export async function createGameSession(formData: FormData): Promise<ActionResul
   if (attempts >= MAX_RETRIES) {
     return { success: false, error: 'Não foi possível gerar um código único. Tente novamente.' };
   }
-  
+
+  // Define teams based on game mode
+  const teams: Team[] = gameMode === 'team' ? [
+    { id: 'team1', name: 'Equipa 1', members: ['player1', 'player3'] },
+    { id: 'team2', name: 'Equipa 2', members: ['player2', 'player4'] }
+  ] : [];
+
   const initialGameState: GameState = {
     gameId,
+    gameMode,
     difficulty,
     language,
     status: 'waiting',
-    scores: { player1: 0, player2: 0 },
+    scores: { player1: 0, player2: 0, player3: 0, player4: 0 },
     turn: 'player1',
     players: {
-      player1: 'player1_id', 
-      player2: null
+      player1: 'player1_id',
+      player2: null,
+      player3: null,
+      player4: null
     },
+    teams,
     board: [],
     activeQuestion: null,
     duelState: null,
@@ -170,6 +181,7 @@ export async function createGameSession(formData: FormData): Promise<ActionResul
 
 export async function joinGameSession(formData: FormData): Promise<ActionResult> {
     const gameId = (formData.get('gameId') as string)?.toUpperCase();
+    const playerSlot = formData.get('playerSlot') as PlayerRole | null;
 
     if (!gameId || gameId.length < 6 || gameId.length > 8) {
         return { success: false, error: 'Código de jogo inválido.' };
@@ -185,16 +197,40 @@ export async function joinGameSession(formData: FormData): Promise<ActionResult>
       }
 
       const gameState = gameDoc.data() as GameState;
+      const isTeamMode = gameState.gameMode === 'team';
+      const maxPlayers = isTeamMode ? 4 : 2;
 
-      if (gameState.players.player2) {
+      // Find the first available slot or use the specified one
+      let targetSlot: PlayerRole | null = null;
+      if (playerSlot && !gameState.players[playerSlot]) {
+        targetSlot = playerSlot;
+      } else {
+        for (let i = 1; i <= maxPlayers; i++) {
+          const slot = `player${i}` as PlayerRole;
+          if (!gameState.players[slot]) {
+            targetSlot = slot;
+            break;
+          }
+        }
+      }
+
+      if (!targetSlot) {
           return { success: false, error: 'Este jogo já está cheio.' };
       }
       
-      // Marca player2 como a entrar e status generating
+      // Marca o jogador como a entrar e status generating se for o último jogador
+      const allSlotsFilled = Object.values(gameState.players).slice(0, maxPlayers).every(p => p !== null);
+      const willBeLastPlayer = allSlotsFilled || (targetSlot === `player${maxPlayers}` as PlayerRole && Object.values(gameState.players).slice(0, maxPlayers - 1).every(p => p !== null));
+      
       await updateDoc(gameDocRef, {
-        'players.player2': 'player2_id_joining',
-        'status': 'generating'
+        [`players.${targetSlot}`]: `${targetSlot}_id_joining`,
+        'status': willBeLastPlayer ? 'generating' : 'waiting'
       });
+
+      // Se não for o último jogador, apenas retorna sucesso
+      if (!willBeLastPlayer) {
+        return { success: true, gameId };
+      }
 
       // Gera o floor e cria o board ANTES de responder (await, não fire-and-forget)
       const floorResult = await generateFloor(gameState.difficulty, gameState.language);
@@ -210,14 +246,33 @@ export async function joinGameSession(formData: FormData): Promise<ActionResult>
         owner: 'unowned'
       }));
       
-      initialBoard[0].owner = 'player1';
-      initialBoard[initialBoard.length - 1].owner = 'player2';
+      if (isTeamMode) {
+        // Team mode: 4 corners for 4 players
+        const boardSize = initialBoard.length;
+        const gridSize = Math.sqrt(boardSize);
+        initialBoard[0].owner = 'player1';                    // Top-left
+        initialBoard[gridSize - 1].owner = 'player2';         // Top-right
+        initialBoard[boardSize - gridSize].owner = 'player3'; // Bottom-left
+        initialBoard[boardSize - 1].owner = 'player4';        // Bottom-right
+      } else {
+        // 1v1 mode: opposite corners
+        initialBoard[0].owner = 'player1';
+        initialBoard[initialBoard.length - 1].owner = 'player2';
+      }
+
+      // Calculate initial scores
+      const initialScores = {
+        player1: initialBoard.filter(t => t.owner === 'player1').length,
+        player2: initialBoard.filter(t => t.owner === 'player2').length,
+        player3: initialBoard.filter(t => t.owner === 'player3').length,
+        player4: initialBoard.filter(t => t.owner === 'player4').length,
+      };
 
       await updateDoc(gameDocRef, {
         board: initialBoard,
-        scores: { player1: 1, player2: 1 },
+        scores: initialScores,
         status: 'playing',
-        'players.player2': 'player2_id',
+        [`players.${targetSlot}`]: `${targetSlot}_id`,
       });
 
       return { success: true, gameId };
@@ -251,7 +306,9 @@ export async function handleTileClick(gameId: string, tileId: number, player: Pl
 
     let questionCount = 1;
     if (isDuel) {
-      const opponent = player === 'player1' ? 'player2' : 'player1';
+      // In team mode, duel is against the owner of the tile
+      // The territory count is based on the owner's territories of that theme
+      const opponent = tile.owner as PlayerRole;
       const territoryCount = gameState.board.filter(t => t.owner === opponent && t.theme === questionTheme).length;
       questionCount = Math.max(1, territoryCount);
     }
@@ -280,7 +337,7 @@ export async function handleTileClick(gameId: string, tileId: number, player: Pl
             questions: questions,
             activeQuestionIndex: 0,
             answers: {},
-            scores: { player1: 0, player2: 0 },
+            scores: { player1: 0, player2: 0, player3: 0, player4: 0 },
             timeRemaining: 15 * questions.length,
           },
           status: 'duel',
@@ -330,7 +387,8 @@ export async function submitAnswer(gameId: string, player: PlayerRole, tileId: n
                 const newDuelState = { ...duelState };
                 newDuelState.answers[activeQuestionIndex] = { ...currentAnswers, [player]: isCorrect };
                 
-                const opponent = player === 'player1' ? 'player2' : 'player1';
+                // In team mode, the opponent is the tile owner (who is being challenged)
+                const opponent = duelState.tile.owner as PlayerRole;
                 if(newDuelState.answers[activeQuestionIndex][opponent] !== undefined) {
                     const playerAnswer = newDuelState.answers[activeQuestionIndex][player];
                     const opponentAnswer = newDuelState.answers[activeQuestionIndex][opponent];
@@ -344,7 +402,7 @@ export async function submitAnswer(gameId: string, player: PlayerRole, tileId: n
                     if (activeQuestionIndex + 1 < questions.length) {
                         newDuelState.activeQuestionIndex++;
                     } else {
-                        const challengerWon = newDuelState.scores[duelState.challenger] > newDuelState.scores[duelState.challenger === 'player1' ? 'player2' : 'player1'];
+                        const challengerWon = newDuelState.scores[duelState.challenger] > newDuelState.scores[opponent];
                         transaction.update(gameDocRef, await checkEndGame(gameState, duelState.challenger, duelState.tile.id, challengerWon));
                         return;
                     }
@@ -367,9 +425,10 @@ async function checkEndGame(gameState: GameState, winnerOfTurn: PlayerRole, conq
   const conqueredTile = newBoard.find(t => t.id === conqueredTileId);
 
   if (wasTurnSuccessful && conqueredTile) {
-    const loserOfTurn = winnerOfTurn === 'player1' ? 'player2' : 'player1';
-      
-    const isDuelWin = conqueredTile.owner === loserOfTurn;
+    // In team mode, the "loser" is the owner of the conquered tile
+    const loserOfTurn = conqueredTile.owner as PlayerRole;
+    
+    const isDuelWin = conqueredTile.owner !== 'unowned' && conqueredTile.owner !== winnerOfTurn;
 
     if (isDuelWin) {
         tileWasConquered = true;
@@ -391,32 +450,74 @@ async function checkEndGame(gameState: GameState, winnerOfTurn: PlayerRole, conq
   const newScores = {
     player1: newBoard.filter(t => t.owner === 'player1').length,
     player2: newBoard.filter(t => t.owner === 'player2').length,
+    player3: newBoard.filter(t => t.owner === 'player3').length,
+    player4: newBoard.filter(t => t.owner === 'player4').length,
   };
 
-  let winner: PlayerRole | 'draw' | null = null;
+  // Determine winner based on game mode
+  let winner: PlayerRole | TeamId | 'draw' | null = null;
   let status: GameState['status'] = 'playing';
 
-if (newScores.player1 === 0 || newScores.player2 === 0 || newScores.player1 + newScores.player2 === newBoard.length) {
+  const allPlayers = ['player1', 'player2', 'player3', 'player4'] as PlayerRole[];
+  const activePlayers = gameState.gameMode === 'team' ? allPlayers : ['player1', 'player2'] as PlayerRole[];
+  const playerScores = activePlayers.map(p => newScores[p]);
+  const totalTiles = newBoard.length;
+  const occupiedTiles = playerScores.reduce((a, b) => a + b, 0);
+  
+  // Check if game is over: one player/team has 0 tiles or board is full
+  const hasZeroTiles = playerScores.some(s => s === 0);
+  const boardFull = occupiedTiles === totalTiles;
+  
+  if (hasZeroTiles || boardFull) {
+    if (gameState.gameMode === 'team') {
+      const team1Score = newScores.player1 + newScores.player3;
+      const team2Score = newScores.player2 + newScores.player4;
+      if (team1Score > team2Score) winner = 'team1';
+      else if (team2Score > team1Score) winner = 'team2';
+      else winner = 'draw';
+    } else {
       if (newScores.player1 > newScores.player2) winner = 'player1';
       else if (newScores.player2 > newScores.player1) winner = 'player2';
       else winner = 'draw';
-      status = 'finished';
     }
-   
-   // Se o jogo terminou, salva no histórico Supabase (fire-and-forget, não bloqueia)
-   if (status === 'finished' && isSupabaseConfigured()) {
-     const totalScores = { player1: newScores.player1, player2: newScores.player2 };
-     saveGameToHistory({
-       gameId: gameState.gameId,
-       winner,
-       difficulty: gameState.difficulty,
-       language: gameState.language,
-       scores: totalScores,
-       board: newBoard,
-     }).catch(console.error);
-   }
-   
-   const nextTurn = tileWasConquered ? winnerOfTurn : (gameState.turn === 'player1' ? 'player2' : 'player1');
+    status = 'finished';
+  }
+  
+  // Se o jogo terminou, salva no histórico Supabase (fire-and-forget, não bloqueia)
+  if (status === 'finished' && isSupabaseConfigured()) {
+    saveGameToHistory({
+      gameId: gameState.gameId,
+      winner,
+      difficulty: gameState.difficulty,
+      language: gameState.language,
+      scores: newScores,
+      board: newBoard,
+    }).catch(console.error);
+  }
+  
+  // Next turn logic: if tile was conquered, same player plays again; otherwise next player in order
+  let nextTurn: PlayerRole;
+  if (tileWasConquered) {
+    nextTurn = winnerOfTurn;
+  } else {
+    // Find next player in turn order who is still in the game
+    const turnOrder: PlayerRole[] = gameState.gameMode === 'team' 
+      ? ['player1', 'player2', 'player3', 'player4'] 
+      : ['player1', 'player2'];
+    
+    const currentIndex = turnOrder.indexOf(gameState.turn);
+    let nextIndex = (currentIndex + 1) % turnOrder.length;
+    // Skip players with 0 tiles (eliminated)
+    for (let i = 0; i < turnOrder.length; i++) {
+      const candidate = turnOrder[nextIndex];
+      if (newScores[candidate] > 0 || gameState.gameMode === 'team') {
+        nextTurn = candidate;
+        break;
+      }
+      nextIndex = (nextIndex + 1) % turnOrder.length;
+    }
+    nextTurn = turnOrder[nextIndex];
+  }
 
   return {
     board: newBoard,
