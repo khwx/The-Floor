@@ -13,10 +13,10 @@ Legenda: ✅ Feito | 🔨 Em curso | ⏳ Pendente
 
 ## 🎯 FUNCIONALIDADES EM FALTA (P1)
 - ✅ IA difficulty não reflete accuracy → AI_ACCURACY por difficulty (45/60/75/90%)
-- 🔨 Modo equipas (blueprint: "Team Play Mode")
-    - ⏳ Definir tipos extendidos (Player1-4, Teams)
-    - ⏳ Atualizar Action/Firestore logic para +2 players
-    - ⏳ Interface de seleção de teams/players
+- ✅ Modo equipas (blueprint: "Team Play Mode")
+    - ✅ Definir tipos extendidos (Player1-4, Teams)
+    - ✅ Atualizar Action/Firestore logic para +2 players
+    - ✅ Interface de seleção de teams/players (game mode selector + auto slot assignment)
 - ✅ Seleção de categorias pelo jogador → seletor com 106 categorias no GameSetup
 - ✅ Supabase integration → saveGameToHistory + getRanking + getGameHistory em supabase.ts, auto-save no checkEndGame
 

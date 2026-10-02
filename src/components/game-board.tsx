@@ -37,6 +37,18 @@ export function GameBoard({ board, gridSize, onTileClick, playerTurn, currentPla
     return false;
   }, [board, gridSize]);
   
+  const getOpponent = (player: Player): Player => {
+    switch (player) {
+      case 'player1': return 'player2';
+      case 'player2': return 'player1';
+      case 'player3': return 'player4';
+      case 'player4': return 'player3';
+      case 'player': return 'ai';
+      case 'ai': return 'player';
+      default: return 'player';
+    }
+  };
+   
   return (
     <div
       className="grid gap-1.5 p-2 bg-black/20 rounded-lg shadow-inner"
@@ -48,12 +60,7 @@ export function GameBoard({ board, gridSize, onTileClick, playerTurn, currentPla
     >
       {board.map((tile) => {
         const activePlayer = currentPlayer || 'player';
-        const opponent = {
-          'player': 'ai',
-          'ai': 'player',
-          'player1': 'player2',
-          'player2': 'player1',
-        }[activePlayer];
+        const opponent = getOpponent(activePlayer);
 
         const isAdjacent = getIsAdjacentToPlayer(tile.id, activePlayer);
         

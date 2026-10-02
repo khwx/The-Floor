@@ -94,9 +94,20 @@
   - TAREFAS.md: tarefa marcada como concluída
 - **Push OK:** `main` -> `origin/main`
 
+## 2 Out 2026 - Feature P1: Modo Equipas (Team Play Mode)
+- **Commit:** pendente
+- **Feito:**
+  - types.ts: PlayerRole expandido para player1-4, TeamId, GameMode, Team, winner suporta TeamId
+  - actions.ts: createGameSession aceita gameMode, joinGameSession suporta 4 jogadores com auto-slot
+  - handleTileClick/submitAnswer/checkEndGame: lógica completa para 4 jogadores e equipas (2v2)
+  - game-board.tsx: getOpponent suporta player3/player4
+  - tile.tsx: cores para player3 (azul) e player4 (roxo), lock icon fix
+  - game-over-dialog.tsx: suporta team1/team2 winner, scores de equipas
+  - game-lobby.tsx: selector de modo 1v1 vs Equipas (2v2)
+- **Push OK:** `main` -> `origin/main`
+
 ## Pendente (análise completa)
 - V1 - Refactorizar play/page.tsx em hooks menores (useGameState, useAI, useDuel)
 - V1 - Autenticação (server actions públicas)
-- V2 - Modo equipas
 - V3 - Keyboard navigation para tiles
 - V3 - i18n completo

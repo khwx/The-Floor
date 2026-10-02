@@ -168,12 +168,13 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ game
         duel={gameState.duelState ?? null}
         currentPlayer={currentPlayerRole}
        />
-       <GameOverDialog
-        isOpen={gameState.status === 'finished'}
-        winner={gameState.winner ?? null}
-        scores={gameState.scores}
-        onPlayAgain={() => router.push('/play/multiplayer')}
-      />
+<GameOverDialog
+         isOpen={gameState.status === 'finished'}
+         winner={gameState.winner ?? null}
+         scores={gameState.scores}
+         gameMode={gameState.gameMode}
+         onPlayAgain={() => router.push('/play/multiplayer')}
+       />
     </div>
   );
 }
