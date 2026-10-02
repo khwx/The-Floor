@@ -27,7 +27,7 @@ Legenda: ✅ Feito | 🔨 Em curso | ⏳ Pendente
 - ✅ Sem indicação visual de casas adjacentes clicáveis → borda verde dashed/glow
 - ✅ Sem feedback visual de corret/incorret no modal → banner verde/vermelho com ícones
 - ✅ AI turn sem visibilidade → 3 fases: "A analisar..." → "A preparar desafio/atacar..." → execução
-- ⏳ Sem confirmação ao sair de jogo ativo
+- ✅ Sem confirmação ao sair de jogo ativo
 - ✅ Sons sem toggle mute → hook useAudio com localStorage + botão toggle no header do jogo
 - ⏳ Loading messages hardcoded em PT (não respeita idioma)
 
