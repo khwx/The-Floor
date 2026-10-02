@@ -72,6 +72,7 @@ export default function PlayPage() {
   const { loadingProgress, loadingMessage } = useLoadingState({
     isLoading: gameState === 'fetching_question',
     activeTile,
+    language,
   });
 
   const checkEndGame = useCallback((newBoard: TileData[]) => {
