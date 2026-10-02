@@ -10,9 +10,17 @@ import { Scoreboard } from '@/components/scoreboard';
 import { QuestionModal } from '@/components/question-modal';
 import { GameOverDialog } from '@/components/game-over-dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, Volume2, VolumeX } from 'lucide-react';
+import { Loader2, Volume2, VolumeX, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useAudio } from '@/hooks/use-audio';
 import { Progress } from '@/components/ui/progress';
 import { useLoadingState } from '@/hooks/use-loading-state';
@@ -58,6 +66,8 @@ export default function PlayPage() {
   const { toast } = useToast();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const { playAudio, isMuted, toggleMute } = useAudio();
+
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   const { loadingProgress, loadingMessage } = useLoadingState({
     isLoading: gameState === 'fetching_question',
@@ -486,12 +496,15 @@ export default function PlayPage() {
   return (
     <div className="flex min-h-screen flex-col items-center p-4 sm:p-6 md:p-8">
       <div className="w-full max-w-7xl">
-        <header className="flex justify-between items-center mb-4">
-          <div className="flex items-center gap-2">
-            <Link href="/" passHref>
-              <Button variant="outline">Voltar ao Menu</Button>
-            </Link>
-            <Button
+<header className="flex justify-between items-center mb-4">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowExitConfirm(true)}
+          >
+            Voltar ao Menu
+          </Button>
+          <Button
               variant="outline"
               size="icon"
               onClick={toggleMute}
@@ -547,6 +560,27 @@ export default function PlayPage() {
         scores={scores}
         onPlayAgain={resetGame}
       />
+      <Dialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              Sair do jogo?
+            </DialogTitle>
+            <DialogDescription>
+              Tem a certeza que quer sair? O progresso atual será perdido.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowExitConfirm(false)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={() => { setShowExitConfirm(false); resetGame(); }}>
+              Sair e perder progresso
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
