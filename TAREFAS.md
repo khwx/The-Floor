@@ -33,8 +33,8 @@ Legenda: ✅ Feito | 🔨 Em curso | ⏳ Pendente
 
 ## 🔧 CÓDIGO (P2)
 - ✅ getGridSize duplicado → extraído para src/lib/grid.ts
-- 🔨 play/page.tsx refatorado: extraídos hooks useDuelTimer + useLoadingState
-- ⏳ play/page.tsx monolítico (ainda ~480 linhas - extrair useGameState, useAI, etc.)
+- ✅ play/page.tsx refatorado: extraídos hooks useDuelTimer + useLoadingState
+- ✅ play/page.tsx monolítico (extraídos hooks useGameState + useAI → ~250 linhas)
 - ✅ `ignoreBuildErrors` esconde erros reais → removido ignoreBuildErrors + ignoreDuringBuilds do next.config.ts
 - ⏳ Deps não usadas no package.json (recharts, date-fns, embla, etc.)
 - ✅ toast delay 1000000ms (16min) → fix: reduce TOAST_REMOVE_DELAY to 5000ms
