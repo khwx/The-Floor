@@ -88,3 +88,5 @@ export type GameState = {
     activeQuestion?: ActiveQuestionInfo | null;
     duelState?: MultiplayerDuelState | null;
 }
+
+export type SinglePlayerGameState = 'setup' | 'loading_board' | 'playing' | 'fetching_question' | 'ai_turn' | 'question' | 'duel' | 'finished';
