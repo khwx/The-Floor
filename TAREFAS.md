@@ -29,7 +29,7 @@ Legenda: ✅ Feito | 🔨 Em curso | ⏳ Pendente
 - ✅ AI turn sem visibilidade → 3 fases: "A analisar..." → "A preparar desafio/atacar..." → execução
 - ✅ Sem confirmação ao sair de jogo ativo
 - ✅ Sons sem toggle mute → hook useAudio com localStorage + botão toggle no header do jogo
-- ⏳ Loading messages hardcoded em PT (não respeita idioma)
+- ✅ Loading messages hardcoded em PT (não respeita idioma) → multilingual support no useLoadingState + tradução UI
 
 ## 🔧 CÓDIGO (P2)
 - ✅ getGridSize duplicado → extraído para src/lib/grid.ts

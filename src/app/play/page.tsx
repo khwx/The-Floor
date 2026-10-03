@@ -39,15 +39,146 @@ const AI_ACCURACY: Record<GameDifficulty, number> = {
   epic: 0.90,
 };
 
-const loadingMessages = [
-  "A afiar os neurónios...",
-  "A consultar os sábios da antiguidade...",
-  "A calibrar o motor de trivia...",
-  "Quase lá, não adormeça!",
-  "A polir as perguntas para brilharem...",
-  "A desvendar os segredos do universo...",
-  "A preparar uma dose de conhecimento...",
-];
+const uiTranslations: Record<string, Record<string, string>> = {
+  analyzingBoard: {
+    Portuguese: 'A analisar o tabuleiro...',
+    English: 'Analyzing the board...',
+    Spanish: 'Analizando el tablero...',
+    French: 'Analyse du plateau...',
+    German: 'Das Spielfeld analysieren...',
+  },
+  preparingChallenge: {
+    Portuguese: 'A preparar desafio em "{theme}"...',
+    English: 'Preparing challenge in "{theme}"...',
+    Spanish: 'Preparando desafío en "{theme}"...',
+    French: 'Préparation du défi dans "{theme}"...',
+    German: 'Herausforderung in "{theme}" vorbereiten...',
+  },
+  attacking: {
+    Portuguese: 'A atacar "{theme}"...',
+    English: 'Attacking "{theme}"...',
+    Spanish: 'Atacando "{theme}"...',
+    French: 'Attaque de "{theme}"...',
+    German: '"{theme}" angreifen...',
+  },
+  aiTurnChallenge: {
+    Portuguese: 'Turno da IA: Desafio!',
+    English: "AI's Turn: Challenge!",
+    Spanish: '¡Turno de la IA: Desafío!',
+    French: "Tour de l'IA : Défi !",
+    German: 'KI-Zug: Herausforderung!',
+  },
+  aiChallengesTerritory: {
+    Portuguese: 'A IA desafia o seu território de "{theme}". Prepare-se para um duelo de {count} perguntas!',
+    English: 'The AI challenges your "{theme}" territory. Prepare for a duel of {count} questions!',
+    Spanish: '¡La IA desafía tu territorio de "{theme}"! ¡Prepárate para un duelo de {count} preguntas!',
+    French: "L'IA défie votre territoire de \"{theme}\". Préparez-vous pour un duel de {count} questions !",
+    German: 'Die KI fordert dein "{theme}"-Gebiet heraus. Bereite dich auf ein Duell mit {count} Fragen vor!',
+  },
+  aiTurn: {
+    Portuguese: 'Turno da IA',
+    English: "AI's Turn",
+    Spanish: 'Turno de la IA',
+    French: "Tour de l'IA",
+    German: 'KI-Zug',
+  },
+  aiAttacksNeutral: {
+    Portuguese: 'A IA tenta conquistar o território neutro de "{theme}".',
+    English: 'The AI attempts to conquer the neutral "{theme}" territory.',
+    Spanish: 'La IA intenta conquistar el territorio neutral de "{theme}".',
+    French: "L'IA tente de conquérir le territoire neutre de \"{theme}\".",
+    German: 'Die KI versucht, das neutrale "{theme}"-Gebiet zu erobern.',
+  },
+  aiAnswered: {
+    Portuguese: 'A IA respondeu {correct}!',
+    English: 'The AI answered {correct}!',
+    Spanish: '¡La IA respondió {correct}!',
+    French: "L'IA a répondu {correct} !",
+    German: 'Die KI hat {correct} geantwortet!',
+  },
+  correctly: {
+    Portuguese: 'corretamente',
+    English: 'correctly',
+    Spanish: 'correctamente',
+    French: 'correctement',
+    German: 'richtig',
+  },
+  incorrectly: {
+    Portuguese: 'incorretamente',
+    English: 'incorrectly',
+    Spanish: 'incorrectamente',
+    French: 'incorrectement',
+    German: 'falsch',
+  },
+  generatingBattlefield: {
+    Portuguese: 'A gerar o seu campo de batalha...',
+    English: 'Generating your battlefield...',
+    Spanish: 'Generando tu campo de batalla...',
+    French: "Génération de votre champ de bataille...",
+    German: 'Dein Schlachtfeld wird generiert...',
+  },
+  preparingYourChallenge: {
+    Portuguese: 'A preparar o seu desafio...',
+    English: 'Preparing your challenge...',
+    Spanish: 'Preparando tu desafío...',
+    French: "Préparation de votre défi...",
+    German: 'Deine Herausforderung wird vorbereitet...',
+  },
+  aiThinking: {
+    Portuguese: 'A IA está a pensar...',
+    English: 'The AI is thinking...',
+    Spanish: 'La IA está pensando...',
+    French: "L'IA réfléchit...",
+    German: 'Die KI denkt nach...',
+  },
+  exitConfirmTitle: {
+    Portuguese: 'Sair do jogo?',
+    English: 'Exit game?',
+    Spanish: '¿Salir del juego?',
+    French: 'Quitter le jeu ?',
+    German: 'Spiel verlassen?',
+  },
+  exitConfirmDesc: {
+    Portuguese: 'Tem a certeza que quer sair? O progresso atual será perdido.',
+    English: 'Are you sure you want to exit? Current progress will be lost.',
+    Spanish: '¿Estás seguro de que quieres salir? Se perderá el progreso actual.',
+    French: 'Êtes-vous sûr de vouloir quitter ? La progression actuelle sera perdue.',
+    German: 'Möchtest du wirklich verlassen? Der aktuelle Fortschritt geht verloren.',
+  },
+  backToMenu: {
+    Portuguese: 'Voltar ao Menu',
+    English: 'Back to Menu',
+    Spanish: 'Volver al Menú',
+    French: 'Retour au Menu',
+    German: 'Zum Menü zurück',
+  },
+  enableSound: {
+    Portuguese: 'Ativar som',
+    English: 'Enable sound',
+    Spanish: 'Activar sonido',
+    French: 'Activer le son',
+    German: 'Ton aktivieren',
+  },
+  disableSound: {
+    Portuguese: 'Desativar som',
+    English: 'Disable sound',
+    Spanish: 'Desactivar sonido',
+    French: 'Désactiver le son',
+    German: 'Ton deaktivieren',
+  },
+};
+
+function t(key: keyof typeof uiTranslations, lang: string, params?: Record<string, string | number>): string {
+  const translations = uiTranslations[key];
+  if (!translations) return key;
+  let message = translations[lang as keyof typeof translations] || translations.Portuguese;
+  if (params) {
+    Object.entries(params).forEach(([k, v]) => {
+      message = message.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
+    });
+  }
+  return message;
+}
 
 export default function PlayPage() {
   const [gameState, setGameState] = useState<GameState>('setup');
@@ -371,7 +502,7 @@ export default function PlayPage() {
     if (gameState !== 'ai_turn' || turn !== 'ai' || board.length === 0) return;
 
     // Fase 1: Mostra o que a IA está a analisar
-    setAiAction('A analisar o tabuleiro...');
+    setAiAction(t('analyzingBoard', language));
     
     const phase1Timeout = setTimeout(() => {
       const { rows, cols } = gridSize;
@@ -412,8 +543,8 @@ export default function PlayPage() {
       
       // Fase 2: Mostra a decisão da IA
       setAiAction(isDuel 
-        ? `A preparar desafio em "${theme}"...` 
-        : `A atacar "${theme}"...`);
+        ? t('preparingChallenge', language, { theme }) 
+        : t('attacking', language, { theme }));
 
       // Fase 3: Executa a ação
       const phase3Timeout = setTimeout(async () => {
@@ -423,8 +554,8 @@ export default function PlayPage() {
             const numQuestions = Math.max(MIN_DUEL_QUESTIONS, territoryCount);
 
             toast({
-                title: `Turno da IA: Desafio!`,
-                description: `A IA desafia o seu território de "${theme}". Prepare-se para um duelo de ${numQuestions} perguntas!`,
+                title: t('aiTurnChallenge', language),
+                description: t('aiChallengesTerritory', language, { theme, count: numQuestions }),
             });
             
             const questionResult = await generateQuestionAction(theme, language, numQuestions);
@@ -455,15 +586,15 @@ export default function PlayPage() {
             setAiAction('');
         } else {
             toast({
-                title: `Turno da IA`,
-                description: `A IA tenta conquistar o território neutro de "${theme}".`,
+                title: t('aiTurn', language),
+                description: t('aiAttacksNeutral', language, { theme }),
             });
             const isCorrect = Math.random() < AI_ACCURACY[difficulty];
             setTimeout(() => {
                 if (isCorrect) playAudio('/sounds/correct.mp3');
                 else playAudio('/sounds/incorrect.mp3');
                 toast({
-                    title: `A IA respondeu ${isCorrect ? 'corretamente' : 'incorretamente'}!`,
+                    title: t('aiAnswered', language, { correct: isCorrect ? t('correctly', language) : t('incorrectly', language) }),
                     variant: isCorrect ? 'default' : 'destructive'
                 });
                 setTimeout(() => endTurn(isCorrect, 'ai', targetTile!), 1500);
@@ -489,7 +620,7 @@ export default function PlayPage() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="text-lg text-muted-foreground">A gerar o seu campo de batalha...</p>
+        <p className="text-lg text-muted-foreground">{t('generatingBattlefield', language)}</p>
       </div>
     );
   }
@@ -503,14 +634,14 @@ export default function PlayPage() {
             variant="outline"
             onClick={() => setShowExitConfirm(true)}
           >
-            Voltar ao Menu
+            {t('backToMenu', language)}
           </Button>
           <Button
               variant="outline"
               size="icon"
               onClick={toggleMute}
-              title={isMuted ? 'Ativar som' : 'Desativar som'}
-              aria-label={isMuted ? 'Ativar som' : 'Desativar som'}
+              title={isMuted ? t('enableSound', language) : t('disableSound', language)}
+              aria-label={isMuted ? t('enableSound', language) : t('disableSound', language)}
             >
               {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
             </Button>
@@ -530,7 +661,7 @@ export default function PlayPage() {
           {gameState === 'fetching_question' && (
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-10 rounded-lg pointer-events-none p-8 text-center">
                  <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-                 <h2 className="text-2xl font-bold text-white mb-2">A preparar o seu desafio...</h2>
+                 <h2 className="text-2xl font-bold text-white mb-2">{t('preparingYourChallenge', language)}</h2>
                  <p className="text-lg text-muted-foreground mb-6">{loadingMessage}</p>
                  <Progress value={loadingProgress} className="w-full max-w-sm" />
             </div>
@@ -539,7 +670,7 @@ export default function PlayPage() {
             <div className="absolute inset-0 bg-black/10 flex flex-col items-center justify-center z-10 rounded-lg pointer-events-none">
                  <Loader2 className="h-10 w-10 animate-spin text-destructive" />
                  <p className="mt-2 font-semibold text-destructive-foreground bg-destructive/80 px-4 py-2 rounded-md">
-                   {aiAction || 'A IA está a pensar...'}
+                   {aiAction || t('aiThinking', language)}
                  </p>
             </div>
           )}
@@ -566,10 +697,10 @@ export default function PlayPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-destructive" />
-              Sair do jogo?
+              {t('exitConfirmTitle', language)}
             </DialogTitle>
             <DialogDescription>
-              Tem a certeza que quer sair? O progresso atual será perdido.
+              {t('exitConfirmDesc', language)}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
