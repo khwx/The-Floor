@@ -36,15 +36,15 @@ Legenda: ✅ Feito | 🔨 Em curso | ⏳ Pendente
 - ✅ play/page.tsx refatorado: extraídos hooks useDuelTimer + useLoadingState
 - ✅ play/page.tsx monolítico (extraídos hooks useGameState + useAI → ~250 linhas)
 - ✅ `ignoreBuildErrors` esconde erros reais → removido ignoreBuildErrors + ignoreDuringBuilds do next.config.ts
-- ⏳ Deps não usadas no package.json (recharts, date-fns, embla, etc.)
+- ✅ Deps não usadas no package.json (recharts, date-fns, embla, etc.)
 - ✅ toast delay 1000000ms (16min) → fix: reduce TOAST_REMOVE_DELAY to 5000ms
 - ✅ ESLint sem config → eslint.config.mjs + eslint + eslint-config-next instalados, fix unescaped entities
 
 ## 🔒 SEGURANÇA (P1)
 - ⏳ Server actions públicas (sem auth)
-- ⏳ Firestore sem security rules
-- ⏳ Math.random() para game IDs (não criptográfico)
-- ⏳ Supabase RLS completamente aberto
+- ✅ Firestore sem security rules → firestore.rules criado com validação de transições
+- ✅ Math.random() para game IDs (não criptográfico) → já usa crypto.getRandomValues()
+- ✅ Supabase RLS completamente aberto → políticas restritivas em schema.sql (insert/select only)
 
 ## ♿ ACESSIBILIDADE (P3)
 - ⏳ Sem ARIA labels nos tiles

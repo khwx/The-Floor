@@ -55,20 +55,23 @@ create trigger games_updated_at
   before update on public.games
   for each row execute function public.handle_updated_at();
 
--- RLS: para já permissivo para o jogo funcionar sem auth
--- Depois podes apertar com auth.uid()
+-- RLS: políticas restritivas para game_history (ranking/histórico)
+-- games e profiles não são usados ativamente (usa-se Firestore para multiplayer)
 alter table public.games enable row level security;
 alter table public.game_history enable row level security;
 alter table public.profiles enable row level security;
 
+-- games: apenas leitura pública (não usado ativamente)
 drop policy if exists "allow all games" on public.games;
-create policy "allow all games" on public.games for all
-  using (true) with check (true);
+create policy "games read only" on public.games for select using (true);
 
+-- game_history: inserção permitida (server action), leitura pública para ranking
+-- Não permitir delete/update para preservar integridade do histórico
 drop policy if exists "allow all history" on public.game_history;
-create policy "allow all history" on public.game_history for all
-  using (true) with check (true);
+create policy "history insert only" on public.game_history for insert with check (true);
+create policy "history read only" on public.game_history for select using (true);
 
+-- profiles: requer auth (preparado para futuro)
 drop policy if exists "profiles are viewable" on public.profiles;
 create policy "profiles are viewable" on public.profiles for select using (true);
 drop policy if exists "users can update own profile" on public.profiles;

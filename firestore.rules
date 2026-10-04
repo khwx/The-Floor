@@ -1,0 +1,56 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /games/{gameId} {
+      allow create: if request.resource.data.keys().hasAll([
+        'gameId', 'gameMode', 'difficulty', 'language', 'status',
+        'scores', 'turn', 'players', 'teams', 'board',
+        'activeQuestion', 'duelState'
+      ]) && request.resource.data.gameId == gameId
+        && request.resource.data.status == 'waiting'
+        && request.resource.data.turn == 'player1';
+
+      allow read: if true;
+
+      allow update: if isValidGameUpdate(gameId, request.resource.data, resource.data);
+
+      function isValidGameUpdate(gameId, newData, oldData) {
+        return newData.gameId == gameId
+          && newData.keys().hasAll(oldData.keys())
+          && isValidStatusTransition(oldData.status, newData.status)
+          && isValidTurnTransition(oldData, newData)
+          && isValidPlayerAction(oldData, newData);
+      }
+
+      function isValidStatusTransition(oldStatus, newStatus) {
+        let validTransitions = {
+          'waiting': ['waiting', 'generating', 'playing', 'error'],
+          'generating': ['playing', 'error'],
+          'playing': ['question', 'duel', 'finished', 'playing'],
+          'question': ['playing', 'duel', 'finished'],
+          'duel': ['playing', 'finished'],
+          'finished': [],
+          'error': []
+        };
+        return newStatus in validTransitions[oldStatus];
+      }
+
+      function isValidTurnTransition(oldData, newData) {
+        if (oldData.status == 'playing' && newData.status == 'playing') {
+          return newData.turn in ['player1', 'player2', 'player3', 'player4'];
+        }
+        return true;
+      }
+
+      function isValidPlayerAction(oldData, newData) {
+        if (oldData.status == 'playing' && newData.status in ['question', 'duel']) {
+          return newData.turn == oldData.turn;
+        }
+        if (oldData.status in ['question', 'duel'] && newData.status == 'playing') {
+          return newData.turn in ['player1', 'player2', 'player3', 'player4'];
+        }
+        return true;
+      }
+    }
+  }
+}

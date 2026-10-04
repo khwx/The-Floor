@@ -111,3 +111,13 @@
 - V1 - Autenticação (server actions públicas)
 - V3 - Keyboard navigation para tiles
 - V3 - i18n completo
+
+## 4 Out 2026 - Segurança + Limpeza: Firestore Rules + Supabase RLS + Deps não usadas
+- **Commit:** pendente
+- **Feito:**
+  - firestore.rules: criado com validação de transições de status, turnos e ações de jogador
+  - supabase/schema.sql: RLS restritivo (games: read-only; game_history: insert+select only; profiles: auth required)
+  - package.json: removidas deps não usadas (date-fns, embla-carousel-react, recharts)
+  - src/components/ui/: removidos carousel.tsx e chart.tsx (não usados)
+  - TAREFAS.md: 4 tarefas de segurança/código marcadas como concluídas
+- **Push OK:** `main` -> `origin/main`
