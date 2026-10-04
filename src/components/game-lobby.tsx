@@ -31,6 +31,9 @@ function CreateGameForm() {
 
         if (result.success) {
             sessionStorage.setItem(`tile-takeover-player-role-${result.gameId}`, 'player1');
+            if (result.token) {
+                sessionStorage.setItem(`tile-takeover-player-token-${result.gameId}`, result.token);
+            }
             router.push(`/play/multiplayer/${result.gameId}`);
         } else {
             setError(result.error || 'Ocorreu um erro desconhecido.');
@@ -130,6 +133,9 @@ function JoinGameForm() {
             // The player slot is determined server-side, but we store a default
             // The actual slot will be determined by the server
             sessionStorage.setItem(`tile-takeover-player-role-${result.gameId}`, 'player2');
+            if (result.token) {
+                sessionStorage.setItem(`tile-takeover-player-token-${result.gameId}`, result.token);
+            }
             router.push(`/play/multiplayer/${result.gameId}`);
         } else {
             setError(result.error || 'Ocorreu um erro desconhecido.');

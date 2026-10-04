@@ -20,16 +20,22 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ game
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [currentPlayerRole, setCurrentPlayerRole] = useState<PlayerRole | null>(null);
+  const [playerToken, setPlayerToken] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     let role = sessionStorage.getItem(`tile-takeover-player-role-${gameId}`) as PlayerRole;
+    let token = sessionStorage.getItem(`tile-takeover-player-token-${gameId}`);
     if (!role) {
       // If no role set, assume player 2 joining
       role = 'player2'; 
       sessionStorage.setItem(`tile-takeover-player-role-${gameId}`, role);
     }
+    if (!token) {
+      token = sessionStorage.getItem(`tile-takeover-player-token-${gameId}`);
+    }
     setCurrentPlayerRole(role);
+    setPlayerToken(token);
   }, [gameId]);
 
   useEffect(() => {
@@ -54,39 +60,39 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ game
   }, [gameId]);
   
   const onTileClick = useCallback(async (tile: TileData) => {
-    if (!gameId || !currentPlayerRole) return;
+    if (!gameId || !currentPlayerRole || !playerToken) return;
     
     toast({ title: 'A processar a sua jogada...' });
 
-    const result = await handleTileClick(gameId, tile.id, currentPlayerRole);
+    const result = await handleTileClick(gameId, tile.id, currentPlayerRole, playerToken);
     if(result?.error) {
        toast({ title: 'Erro na Jogada', description: result.error, variant: 'destructive'});
     }
 
-  }, [gameId, currentPlayerRole, toast]);
+  }, [gameId, currentPlayerRole, playerToken, toast]);
 
   const onAnswer = useCallback(async (isCorrect: boolean) => {
-    if (!gameId || !gameState || !currentPlayerRole || (!gameState.activeQuestion && !gameState.duelState)) return;
+    if (!gameId || !gameState || !currentPlayerRole || !playerToken || (!gameState.activeQuestion && !gameState.duelState)) return;
     
     const activeTileId = gameState.activeQuestion?.tile.id ?? gameState.duelState?.tile.id;
     if(activeTileId === undefined) return;
 
-    const result = await submitAnswer(gameId, currentPlayerRole, activeTileId, isCorrect);
+    const result = await submitAnswer(gameId, currentPlayerRole, activeTileId, isCorrect, playerToken);
     
     if(result?.error) {
         toast({ title: 'Erro ao Submeter', description: result.error, variant: 'destructive'});
     }
-  }, [gameId, gameState, currentPlayerRole, toast]);
+  }, [gameId, gameState, currentPlayerRole, playerToken, toast]);
 
   const onModalClose = useCallback(async () => {
-    if (!gameId || !gameState || !currentPlayerRole) return;
+    if (!gameId || !gameState || !currentPlayerRole || !playerToken) return;
 
     if (gameState.activeQuestion) {
         await onAnswer(false);
     } else if (gameState.duelState) {
-        await endDuelForPlayer(gameId, currentPlayerRole);
+        await endDuelForPlayer(gameId, currentPlayerRole, playerToken);
     }
-  }, [gameId, gameState, currentPlayerRole, onAnswer]);
+  }, [gameId, gameState, currentPlayerRole, playerToken, onAnswer]);
 
   if (error) {
     return (

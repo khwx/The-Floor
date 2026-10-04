@@ -83,6 +83,12 @@ export type GameState = {
         player3: string | null; // user ID
         player4: string | null; // user ID
     }
+    playerTokens: {
+        player1: string;
+        player2: string | null;
+        player3: string | null;
+        player4: string | null;
+    };
     teams: Team[];
     winner?: PlayerRole | TeamId | 'draw' | null;
     activeQuestion?: ActiveQuestionInfo | null;

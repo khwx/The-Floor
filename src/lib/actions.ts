@@ -12,11 +12,32 @@ import { saveGameToHistory, isSupabaseConfigured } from './supabase';
 const GAME_ID_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const GAME_ID_LENGTH = 8;
 const MAX_RETRIES = 5;
+const TOKEN_BYTES = 16;
 
 function generateSecureGameId(): string {
   const array = new Uint8Array(GAME_ID_LENGTH);
   globalThis.crypto.getRandomValues(array);
   return Array.from(array, (byte) => GAME_ID_CHARS[byte % GAME_ID_CHARS.length]).join('');
+}
+
+function generateSessionToken(): string {
+  const array = new Uint8Array(TOKEN_BYTES);
+  globalThis.crypto.getRandomValues(array);
+  return Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+async function validatePlayerToken(gameId: string, player: PlayerRole, token: string): Promise<boolean> {
+  try {
+    const gameDocRef = doc(db, 'games', gameId);
+    const gameDoc = await getDoc(gameDocRef);
+    if (!gameDoc.exists()) return false;
+    
+    const gameState = gameDoc.data() as GameState;
+    const playerTokenKey = `playerTokens.${player}`;
+    return gameState[playerTokenKey as keyof GameState] === token;
+  } catch {
+    return false;
+  }
 }
 
 export async function generateFloor(
@@ -118,7 +139,7 @@ export async function getImageForQuery(query: string): Promise<{ url: string } |
   }
 }
 
-export type ActionResult = { success: true; gameId: string } | { success: false; error: string };
+export type ActionResult = { success: true; gameId: string; token?: string } | { success: false; error: string };
 
 export async function createGameSession(formData: FormData): Promise<ActionResult> {
   const difficulty = formData.get('difficulty') as GameDifficulty;
@@ -143,6 +164,9 @@ export async function createGameSession(formData: FormData): Promise<ActionResul
     return { success: false, error: 'Não foi possível gerar um código único. Tente novamente.' };
   }
 
+  // Generate session token for player1 (creator)
+  const player1Token = generateSessionToken();
+
   // Define teams based on game mode
   const teams: Team[] = gameMode === 'team' ? [
     { id: 'team1', name: 'Equipa 1', members: ['player1', 'player3'] },
@@ -163,6 +187,12 @@ export async function createGameSession(formData: FormData): Promise<ActionResul
       player3: null,
       player4: null
     },
+    playerTokens: {
+      player1: player1Token,
+      player2: null,
+      player3: null,
+      player4: null
+    },
     teams,
     board: [],
     activeQuestion: null,
@@ -171,7 +201,8 @@ export async function createGameSession(formData: FormData): Promise<ActionResul
 
   try {
     await setDoc(doc(db, 'games', gameId), initialGameState);
-    return { success: true, gameId };
+    // Return gameId and token for the creator
+    return { success: true, gameId, token: player1Token };
   } catch (error) {
     console.error("Failed to create game session in Firestore:", error);
     const errorMessage = error instanceof Error ? error.message : 'Could not create game in database.';
@@ -217,6 +248,9 @@ export async function joinGameSession(formData: FormData): Promise<ActionResult>
       if (!targetSlot) {
           return { success: false, error: 'Este jogo já está cheio.' };
       }
+
+      // Generate session token for the joining player
+      const playerToken = generateSessionToken();
       
       // Marca o jogador como a entrar e status generating se for o último jogador
       const allSlotsFilled = Object.values(gameState.players).slice(0, maxPlayers).every(p => p !== null);
@@ -224,12 +258,13 @@ export async function joinGameSession(formData: FormData): Promise<ActionResult>
       
       await updateDoc(gameDocRef, {
         [`players.${targetSlot}`]: `${targetSlot}_id_joining`,
+        [`playerTokens.${targetSlot}`]: playerToken,
         'status': willBeLastPlayer ? 'generating' : 'waiting'
       });
 
       // Se não for o último jogador, apenas retorna sucesso
       if (!willBeLastPlayer) {
-        return { success: true, gameId };
+        return { success: true, gameId, token: playerToken };
       }
 
       // Gera o floor e cria o board ANTES de responder (await, não fire-and-forget)
@@ -275,7 +310,7 @@ export async function joinGameSession(formData: FormData): Promise<ActionResult>
         [`players.${targetSlot}`]: `${targetSlot}_id`,
       });
 
-      return { success: true, gameId };
+      return { success: true, gameId, token: playerToken };
       
     } catch (error) {
        console.error("Failed to join game session in Firestore:", error);
@@ -285,8 +320,14 @@ export async function joinGameSession(formData: FormData): Promise<ActionResult>
     }
 }
 
-export async function handleTileClick(gameId: string, tileId: number, player: PlayerRole) {
+export async function handleTileClick(gameId: string, tileId: number, player: PlayerRole, token: string) {
   try {
+    // Validate session token
+    const isValid = await validatePlayerToken(gameId, player, token);
+    if (!isValid) {
+      return { error: 'Sessão inválida ou expirada.' };
+    }
+
     // 1. Primeiro lê o jogo (fora da transação) para validar turno e obter tema
     const gameDocRef = doc(db, 'games', gameId);
     const gameDoc = await getDoc(gameDocRef);
@@ -363,8 +404,14 @@ export async function handleTileClick(gameId: string, tileId: number, player: Pl
   }
 }
 
-export async function submitAnswer(gameId: string, player: PlayerRole, tileId: number, isCorrect: boolean) {
+export async function submitAnswer(gameId: string, player: PlayerRole, tileId: number, isCorrect: boolean, token: string) {
     try {
+        // Validate session token
+        const isValid = await validatePlayerToken(gameId, player, token);
+        if (!isValid) {
+            return { error: 'Sessão inválida ou expirada.' };
+        }
+
         await runTransaction(db, async (transaction) => {
             const gameDocRef = doc(db, 'games', gameId);
             const gameDoc = await transaction.get(gameDocRef);
@@ -530,8 +577,14 @@ async function checkEndGame(gameState: GameState, winnerOfTurn: PlayerRole, conq
   };
 }
 
-export async function endDuelForPlayer(gameId: string, player: PlayerRole) {
+export async function endDuelForPlayer(gameId: string, player: PlayerRole, token: string) {
     try {
+        // Validate session token
+        const isValid = await validatePlayerToken(gameId, player, token);
+        if (!isValid) {
+            return;
+        }
+
         await runTransaction(db, async (transaction) => {
             const gameDocRef = doc(db, 'games', gameId);
             const gameDoc = await transaction.get(gameDocRef);
