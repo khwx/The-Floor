@@ -113,11 +113,22 @@
 - V3 - i18n completo
 
 ## 4 Out 2026 - Segurança + Limpeza: Firestore Rules + Supabase RLS + Deps não usadas
-- **Commit:** pendente
+- **Commit:** `dc6b9a4` - `security: firestore rules + supabase RLS restritivo + remove unused deps`
 - **Feito:**
   - firestore.rules: criado com validação de transições de status, turnos e ações de jogador
   - supabase/schema.sql: RLS restritivo (games: read-only; game_history: insert+select only; profiles: auth required)
   - package.json: removidas deps não usadas (date-fns, embla-carousel-react, recharts)
   - src/components/ui/: removidos carousel.tsx e chart.tsx (não usados)
   - TAREFAS.md: 4 tarefas de segurança/código marcadas como concluídas
+- **Push OK:** `main` -> `origin/main`
+
+## 4 Out 2026 - Segurança: Session Token Auth nas Server Actions (P1)
+- **Commit:** `ae9271a` - `feat: add session token auth to server actions`
+- **Feito:**
+  - actions.ts: generateSessionToken + validatePlayerToken, playerTokens field no GameState
+  - createGameSession: gera e retorna token para player1 (criador)
+  - joinGameSession: gera e retorna token para jogador que entra
+  - handleTileClick, submitAnswer, endDuelForPlayer: valida token antes de processar
+  - game-lobby.tsx: armazena token no sessionStorage
+  - multiplayer/[gameId]/page.tsx: lê token e passa nas chamadas de server actions
 - **Push OK:** `main` -> `origin/main`

@@ -41,7 +41,7 @@ Legenda: ✅ Feito | 🔨 Em curso | ⏳ Pendente
 - ✅ ESLint sem config → eslint.config.mjs + eslint + eslint-config-next instalados, fix unescaped entities
 
 ## 🔒 SEGURANÇA (P1)
-- ⏳ Server actions públicas (sem auth)
+- ✅ Server actions públicas (sem auth) → session token validation adicionado
 - ✅ Firestore sem security rules → firestore.rules criado com validação de transições
 - ✅ Math.random() para game IDs (não criptográfico) → já usa crypto.getRandomValues()
 - ✅ Supabase RLS completamente aberto → políticas restritivas em schema.sql (insert/select only)
