@@ -51,6 +51,8 @@ export function GameBoard({ board, gridSize, onTileClick, playerTurn, currentPla
    
   return (
     <div
+      role="grid"
+      aria-label="Tabuleiro do jogo"
       className="grid gap-1.5 p-2 bg-black/20 rounded-lg shadow-inner"
       style={{
         gridTemplateColumns: `repeat(${gridSize.cols}, minmax(0, 1fr))`,

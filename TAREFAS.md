@@ -47,7 +47,7 @@ Legenda: ✅ Feito | 🔨 Em curso | ⏳ Pendente
 - ✅ Supabase RLS completamente aberto → políticas restritivas em schema.sql (insert/select only)
 
 ## ♿ ACESSIBILIDADE (P3)
-- ⏳ Sem ARIA labels nos tiles
+- ✅ Sem ARIA labels nos tiles → adicionado role="gridcell", aria-label e aria-disabled no Tile + role="grid" no GameBoard
 - ⏳ Owner info só por cor (color-blind users)
 - ⏳ Sem keyboard navigation no tabuleiro
 - ⏳ Timer sem aria-live announcements

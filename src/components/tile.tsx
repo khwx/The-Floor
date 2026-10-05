@@ -58,10 +58,25 @@ export function Tile({ tile, isClickable, isAdjacent, onClick }: TileProps) {
   }[tile.owner];
 
 
+  const ownerLabel = {
+    player: 'sua casa',
+    player1: 'casa do jogador 1',
+    player2: 'casa do jogador 2',
+    player3: 'casa do jogador 3',
+    player4: 'casa do jogador 4',
+    ai: 'casa do adversário',
+    unowned: 'casa livre',
+  }[tile.owner];
+
+  const ariaLabel = `${tile.theme}, ${ownerLabel}${isClickable ? ', clicável para atacar' : ', não clicável'}`;
+
   return (
     <button
       onClick={isClickable ? onClick : undefined}
       disabled={!isClickable}
+      role="gridcell"
+      aria-label={ariaLabel}
+      aria-disabled={!isClickable}
       className={cn(
         'relative aspect-square w-full rounded-md transition-all duration-300 flex flex-col items-center justify-center p-2 focus:outline-none focus:ring-4 focus:ring-offset-2 focus:ring-offset-background animate-tile-spawn',
         ownerClass,
