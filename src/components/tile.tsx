@@ -3,7 +3,7 @@
 import { cn } from '@/lib/utils';
 import type { TileData } from '@/lib/types';
 import { getIconForTheme } from '@/components/icons';
-import { Lock } from 'lucide-react';
+import { Lock, User, Users, Crown, Shield } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 type TileProps = {
@@ -12,6 +12,26 @@ type TileProps = {
   isAdjacent?: boolean;
   onClick: () => void;
 };
+
+const ownerPatterns = {
+  player: 'bg-[linear-gradient(45deg,currentColor_2px,transparent_2px)] bg-[length:6px_6px] opacity-30',
+  player1: 'bg-[linear-gradient(45deg,currentColor_2px,transparent_2px)] bg-[length:6px_6px] opacity-30',
+  player2: 'bg-[radial-gradient(currentColor_2px,transparent_2px)] bg-[length:8px_8px] opacity-30',
+  player3: 'bg-[linear-gradient(90deg,currentColor_1px,transparent_1px)] bg-[length:4px_100%] opacity-30',
+  player4: 'bg-[linear-gradient(0deg,currentColor_1px,transparent_1px)] bg-[length:100%_4px] opacity-30',
+  ai: 'bg-[repeating-linear-gradient(45deg,currentColor,currentColor_2px,transparent_2px,transparent_6px)] opacity-30',
+  unowned: '',
+} as const;
+
+const ownerIcons = {
+  player: User,
+  player1: User,
+  player2: Users,
+  player3: Crown,
+  player4: Shield,
+  ai: Crown,
+  unowned: null,
+} as const;
 
 export function Tile({ tile, isClickable, isAdjacent, onClick }: TileProps) {
   const ThemeIcon = getIconForTheme(tile.theme);
@@ -57,7 +77,6 @@ export function Tile({ tile, isClickable, isAdjacent, onClick }: TileProps) {
     unowned: '',
   }[tile.owner];
 
-
   const ownerLabel = {
     player: 'sua casa',
     player1: 'casa do jogador 1',
@@ -67,6 +86,9 @@ export function Tile({ tile, isClickable, isAdjacent, onClick }: TileProps) {
     ai: 'casa do adversário',
     unowned: 'casa livre',
   }[tile.owner];
+
+  const OwnerIcon = ownerIcons[tile.owner];
+  const patternClass = ownerPatterns[tile.owner];
 
   const ariaLabel = `${tile.theme}, ${ownerLabel}${isClickable ? ', clicável para atacar' : ', não clicável'}`;
 
@@ -78,7 +100,7 @@ export function Tile({ tile, isClickable, isAdjacent, onClick }: TileProps) {
       aria-label={ariaLabel}
       aria-disabled={!isClickable}
       className={cn(
-        'relative aspect-square w-full rounded-md transition-all duration-300 flex flex-col items-center justify-center p-2 focus:outline-none focus:ring-4 focus:ring-offset-2 focus:ring-offset-background animate-tile-spawn',
+        'relative aspect-square w-full rounded-md transition-all duration-300 flex flex-col items-center justify-center p-2 focus:outline-none focus:ring-4 focus:ring-offset-2 focus:ring-offset-background animate-tile-spawn overflow-hidden',
         ownerClass,
         isClickable ? clickableRingClass : 'cursor-not-allowed',
         tile.owner !== 'unowned' && 'ring-2 ring-offset-1 ring-offset-background',
@@ -88,10 +110,19 @@ export function Tile({ tile, isClickable, isAdjacent, onClick }: TileProps) {
       )}
       style={{ animationDelay: `${tile.id * 20}ms`, animationFillMode: 'forwards' }}
     >
-      <ThemeIcon className={cn('h-1/3 w-1/3', iconColorClass)} />
-      <span className={cn('text-xs font-medium text-center truncate w-full mt-1 capitalize', iconColorClass)}>
+      {tile.owner !== 'unowned' && patternClass && (
+        <div 
+          className={cn('absolute inset-0 pointer-events-none', patternClass)}
+          aria-hidden="true"
+        />
+      )}
+      <ThemeIcon className={cn('h-1/3 w-1/3 relative z-10', iconColorClass)} />
+      <span className={cn('text-xs font-medium text-center truncate w-full mt-1 capitalize relative z-10', iconColorClass)}>
         {tile.theme}
       </span>
+      {OwnerIcon && tile.owner !== 'unowned' && (
+        <OwnerIcon className={cn('absolute bottom-1 right-1 h-4 w-4 opacity-60', iconColorClass)} aria-hidden="true" />
+      )}
       {!isClickable && tile.owner !== 'player' && tile.owner !== 'player1' && tile.owner !== 'player2' && tile.owner !== 'player3' && tile.owner !== 'player4' && (
         <div className="absolute inset-0 bg-black/40 rounded-md flex items-center justify-center">
             <Lock className="h-6 w-6 text-white/50" />
