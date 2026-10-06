@@ -2,7 +2,7 @@
 
 import type { Player, TileData } from '@/lib/types';
 import { Tile } from './tile';
-import { useCallback } from 'react';
+import { useCallback, useRef, useEffect } from 'react';
 
 type GameBoardProps = {
   board: TileData[];
@@ -13,7 +13,21 @@ type GameBoardProps = {
 };
 
 export function GameBoard({ board, gridSize, onTileClick, playerTurn, currentPlayer }: GameBoardProps) {
+  const tileRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
   
+  const registerTileRef = useCallback((tileId: number, element: HTMLButtonElement | null) => {
+    if (element) {
+      tileRefs.current.set(tileId, element);
+    } else {
+      tileRefs.current.delete(tileId);
+    }
+  }, []);
+
+  const focusTile = useCallback((tileId: number) => {
+    const button = tileRefs.current.get(tileId);
+    button?.focus();
+  }, []);
+
   const getIsAdjacentToPlayer = useCallback((tileId: number, player: Player): boolean => {
     const playerTiles = board.filter(t => t.owner === player).map(t => t.id);
     const { rows, cols } = gridSize;
@@ -71,14 +85,18 @@ export function GameBoard({ board, gridSize, onTileClick, playerTurn, currentPla
           tile.owner !== activePlayer &&
           (tile.owner === opponent || (tile.owner === 'unowned' && isAdjacent));
         
-        return (
-          <Tile
-            key={tile.id}
-            tile={tile}
-            isClickable={isClickable}
-            isAdjacent={isAdjacent && tile.owner === 'unowned'}
-            onClick={() => onTileClick(tile)}
-          />
+return (
+    <Tile
+      key={tile.id}
+      ref={(el) => registerTileRef(tile.id, el)}
+      tile={tile}
+      isClickable={isClickable}
+      isAdjacent={isAdjacent && tile.owner === 'unowned'}
+      onClick={() => onTileClick(tile)}
+      gridSize={gridSize}
+      board={board}
+      onFocus={focusTile}
+    />
         );
       })}
     </div>

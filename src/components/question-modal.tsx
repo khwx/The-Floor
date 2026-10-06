@@ -31,6 +31,7 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel,
   const [isAnswered, setIsAnswered] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [feedbackCorrect, setFeedbackCorrect] = useState<boolean | null>(null);
+  const [timerAnnouncement, setTimerAnnouncement] = useState<string>('');
 
   useEffect(() => {
     setSelectedOption(null);
@@ -49,6 +50,18 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel,
       }, 300);
     }
   }, [isOpen]);
+  
+  // Timer aria-live announcements
+  useEffect(() => {
+    if (duel && duel.timeRemaining !== undefined && duel.timeRemaining > 0) {
+      const timeLeft = duel.timeRemaining;
+      if (timeLeft <= 10 || timeLeft % 5 === 0 || timeLeft === 30) {
+        setTimerAnnouncement(`Tempo restante: ${timeLeft} segundos`);
+      }
+    } else {
+      setTimerAnnouncement('');
+    }
+  }, [duel]);
   
   // Determine if the current player has already answered the current question in a duel
   useEffect(() => {
@@ -123,6 +136,16 @@ export function QuestionModal({ isOpen, tile, question, onAnswer, onClose, duel,
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
+        {timerAnnouncement && (
+          <div 
+            role="status" 
+            aria-live="polite" 
+            aria-atomic="true"
+            className="sr-only"
+          >
+            {timerAnnouncement}
+          </div>
+        )}
         <DialogHeader>
            {isDuel ? (
             <div className="flex justify-between items-center">

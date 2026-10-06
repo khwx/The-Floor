@@ -4,13 +4,16 @@ import { cn } from '@/lib/utils';
 import type { TileData } from '@/lib/types';
 import { getIconForTheme } from '@/components/icons';
 import { Lock, User, Users, Crown, Shield } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, forwardRef, useCallback } from 'react';
 
 type TileProps = {
   tile: TileData;
   isClickable: boolean;
   isAdjacent?: boolean;
   onClick: () => void;
+  gridSize?: { rows: number; cols: number };
+  board?: TileData[];
+  onFocus?: (tileId: number) => void;
 };
 
 const ownerPatterns = {
@@ -33,19 +36,79 @@ const ownerIcons = {
   unowned: null,
 } as const;
 
-export function Tile({ tile, isClickable, isAdjacent, onClick }: TileProps) {
+export const Tile = forwardRef<HTMLButtonElement, TileProps>(({
+  tile,
+  isClickable,
+  isAdjacent,
+  onClick,
+  gridSize,
+  board,
+  onFocus,
+}, ref) => {
   const ThemeIcon = getIconForTheme(tile.theme);
   const [isConquered, setIsConquered] = useState(false);
   const [prevOwner, setPrevOwner] = useState(tile.owner);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     if (tile.owner !== 'unowned' && prevOwner !== tile.owner) {
       setIsConquered(true);
-      const timer = setTimeout(() => setIsConquered(false), 400); // Animation duration
+      const timer = setTimeout(() => setIsConquered(false), 400);
       return () => clearTimeout(timer);
     }
     setPrevOwner(tile.owner);
   }, [tile.owner, prevOwner]);
+
+  // Keyboard navigation for accessibility
+  useEffect(() => {
+    const button = buttonRef.current;
+    if (!button || !gridSize || !board) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const { rows, cols } = gridSize;
+      const tileId = tile.id;
+      const r = Math.floor(tileId / cols);
+      const c = tileId % cols;
+
+      let targetId: number | null = null;
+
+      switch (e.key) {
+        case 'ArrowUp':
+          if (r > 0) targetId = tileId - cols;
+          break;
+        case 'ArrowDown':
+          if (r < rows - 1) targetId = tileId + cols;
+          break;
+        case 'ArrowLeft':
+          if (c > 0) targetId = tileId - 1;
+          break;
+        case 'ArrowRight':
+          if (c < cols - 1) targetId = tileId + 1;
+          break;
+        case 'Home':
+          targetId = 0;
+          break;
+        case 'End':
+          targetId = board.length - 1;
+          break;
+        case 'Enter':
+        case ' ':
+          if (isClickable) {
+            e.preventDefault();
+            onClick();
+          }
+          break;
+      }
+
+      if (targetId !== null) {
+        e.preventDefault();
+        onFocus?.(targetId);
+      }
+    };
+
+    button.addEventListener('keydown', handleKeyDown);
+    return () => button.removeEventListener('keydown', handleKeyDown);
+  }, [gridSize, board, tile.id, isClickable, onClick, onFocus]);
 
   const ownerClass = {
     player: 'bg-primary/90 ring-primary',
@@ -92,10 +155,21 @@ export function Tile({ tile, isClickable, isAdjacent, onClick }: TileProps) {
 
   const ariaLabel = `${tile.theme}, ${ownerLabel}${isClickable ? ', clicável para atacar' : ', não clicável'}`;
 
+  const setRef = useCallback((node: HTMLButtonElement | null) => {
+    buttonRef.current = node;
+    if (typeof ref === 'function') {
+      ref(node);
+    } else if (ref && typeof ref === 'object' && 'current' in ref) {
+      (ref as React.MutableRefObject<HTMLButtonElement | null>).current = node;
+    }
+  }, [ref]);
+
   return (
     <button
+      ref={setRef}
       onClick={isClickable ? onClick : undefined}
       disabled={!isClickable}
+      tabIndex={isClickable ? 0 : -1}
       role="gridcell"
       aria-label={ariaLabel}
       aria-disabled={!isClickable}
@@ -130,4 +204,6 @@ export function Tile({ tile, isClickable, isAdjacent, onClick }: TileProps) {
       )}
     </button>
   );
-}
+});
+
+Tile.displayName = 'Tile';
