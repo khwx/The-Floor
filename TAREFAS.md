@@ -49,5 +49,5 @@ Legenda: ✅ Feito | 🔨 Em curso | ⏳ Pendente
 ## ♿ ACESSIBILIDADE (P3)
 - ✅ Sem ARIA labels nos tiles → adicionado role="gridcell", aria-label e aria-disabled no Tile + role="grid" no GameBoard
 - ✅ Owner info só por cor (color-blind users) → padrões visuais (stripes/dots/linhas) + ícones por jogador no Tile
-- ⏳ Sem keyboard navigation no tabuleiro
-- ⏳ Timer sem aria-live announcements
+- ✅ Sem keyboard navigation no tabuleiro → navegação por setas/Home/End/Enter/Space no Tile
+- ✅ Timer sem aria-live announcements → aria-live="polite" no QuestionModal para duelos
