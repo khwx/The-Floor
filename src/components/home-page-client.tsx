@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Gamepad2 } from "lucide-react";
+import { Gamepad2, Trophy } from "lucide-react";
 import { GameLobby } from "@/components/game-lobby";
 
 export function HomePageClient() {
@@ -38,6 +38,13 @@ export function HomePageClient() {
             <Button className="w-full" size="lg">
                 <Gamepad2 className="mr-2 h-5 w-5" />
                 Jogar em Equipa
+            </Button>
+        </Link>
+
+        <Link href="/ranking" passHref>
+            <Button variant="outline" className="w-full" size="lg">
+                <Trophy className="mr-2 h-5 w-5" />
+                Ver Ranking
             </Button>
         </Link>
 

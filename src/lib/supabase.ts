@@ -8,6 +8,7 @@ export type GameHistoryRecord = {
   language: string | null;
   scores: Record<string, number> | null;
   board: unknown | null;
+  game_mode: string | null;
   created_at: string;
 };
 
