@@ -30,7 +30,7 @@ const uiTranslations: Record<string, Record<string, string>> = {
   generatingBattlefield: {
     Portuguese: 'A gerar o seu campo de batalha...',
     English: 'Generating your battlefield...',
-    Spanish: 'Generando tu campo de batalla...',
+    Spanish: 'Generando tu campo de batalha...',
     French: "Génération de votre champ de bataille...",
     German: 'Dein Schlachtfeld wird generiert...',
   },
@@ -302,6 +302,7 @@ export default function PlayPage() {
         isOpen={gameState === 'finished'}
         winner={winner}
         scores={scores}
+        language={language}
         onPlayAgain={resetGame}
       />
       <Dialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
