@@ -24,6 +24,24 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ game
   const [playerToken, setPlayerToken] = useState<string | null>(null);
   const { toast } = useToast();
 
+  const uiTranslations: Record<string, Record<string, string>> = {
+    generatingBattlefield: {
+      Portuguese: 'A gerar o seu campo de batalha...',
+      English: 'Generating your battlefield...',
+    },
+    loadingGame: {
+      Portuguese: 'A carregar o jogo...',
+      English: 'Loading the game...',
+    },
+  };
+
+  const t = (key: keyof typeof uiTranslations, lang: string): string => {
+    const translations = uiTranslations[key];
+    if (!translations) return key;
+    let message = translations[lang as keyof typeof translations] || translations.Portuguese;
+    return message;
+  };
+
   useEffect(() => {
     let role = sessionStorage.getItem(`tile-takeover-player-role-${gameId}`) as PlayerRole;
     let token = sessionStorage.getItem(`tile-takeover-player-token-${gameId}`);
@@ -108,7 +126,7 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ game
       <div className="flex min-h-screen flex-col items-center justify-center gap-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
         <p className="text-lg text-muted-foreground">
-          {gameState?.status === 'generating' ? 'A gerar o seu campo de batalha...' : 'A carregar o jogo...'}
+          {t(gameState?.status === 'generating' ? 'generatingBattlefield' : 'loadingGame', language)}
         </p>
       </div>
     );
