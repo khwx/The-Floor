@@ -28,18 +28,28 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ game
     generatingBattlefield: {
       Portuguese: 'A gerar o seu campo de batalha...',
       English: 'Generating your battlefield...',
+      Spanish: 'Generando tu campo de batalha...',
+      French: "Génération de votre champ de bataille...",
+      German: 'Dein Schlachtfeld wird generiert...',
     },
     loadingGame: {
       Portuguese: 'A carregar o jogo...',
       English: 'Loading the game...',
+      Spanish: 'Cargando tu juego...',
+      French: "Préparation de ton jeu...",
+      German: 'Dein Spiel wird geladen...',
     },
   };
 
   const t = (key: keyof typeof uiTranslations, lang: string): string => {
     const translations = uiTranslations[key];
     if (!translations) return key;
-    let message = translations[lang as keyof typeof translations] || translations.Portuguese;
-    return message;
+    const translation = translations[lang as keyof typeof translations];
+    if (translation) return translation;
+    // Fallback to Portuguese, then English, then key itself
+    if (translations.Portuguese) return translations.Portuguese;
+    if (translations.English) return translations.English;
+    return key;
   };
 
   useEffect(() => {
