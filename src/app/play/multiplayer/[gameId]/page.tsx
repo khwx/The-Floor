@@ -39,6 +39,48 @@ export default function MultiplayerGamePage({ params }: { params: Promise<{ game
       French: "Préparation de ton jeu...",
       German: 'Dein Spiel wird geladen...',
     },
+    exitConfirmTitle: {
+      Portuguese: 'Sair do jogo?',
+      English: 'Exit game?',
+      Spanish: '¿Salir del juego?',
+      French: 'Quitter le jeu ?',
+      German: 'Spiel verlassen?',
+    },
+    exitConfirmDesc: {
+      Portuguese: 'Tem a certeza que quer sair? O progresso atual será perdido.',
+      English: 'Are you sure you want to exit? Current progress will be lost.',
+      Spanish: '¿Estás seguro de que quieres salir? Se perderá el progreso actual.',
+      French: 'Êtes-vous sûr de vouloir quitter ? La progression actuelle sera perdue.',
+      German: 'Möchtest du wirklich verlassen? Der aktuelle Fortschritt geht verloren.',
+    },
+    aiThinking: {
+      Portuguese: 'A IA está a pensar...',
+      English: 'The AI is thinking...',
+      Spanish: 'La IA está pensando...',
+      French: "L'IA réfléchit...",
+      German: 'Die KI denkt nach...',
+    },
+    preparingYourChallenge: {
+      Portuguese: 'A preparar o seu desafio...',
+      English: 'Preparing your challenge...',
+      Spanish: 'Preparando tu desafío...',
+      French: "Préparation de votre défi...",
+      German: 'Deine Herausforderung wird vorbereitet...',
+    },
+    aiThinking2: {
+      Portuguese: 'A IA está a pensar...',
+      English: 'The AI is thinking...',
+      Spanish: 'La IA está pensando...',
+      French: "L'IA réfléchit...",
+      German: 'Die KI denkt nach...',
+    },
+    exitToMenu: {
+      Portuguese: 'Voltar ao Menu',
+      English: 'Back to Menu',
+      Spanish: 'Volver al Menú',
+      French: 'Retour au Menu',
+      German: 'Zum Menü zurück',
+    },
   };
 
   const t = (key: keyof typeof uiTranslations, lang: string): string => {
