@@ -20,6 +20,93 @@ function CreateGameForm() {
     const [pending, setPending] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const uiTranslations: Record<string, Record<string, string>> = {
+      createGame: {
+        Portuguese: 'Criar Jogo',
+        English: 'Create Game',
+        Spanish: 'Crear Juego',
+        French: 'Créer un jeu',
+        German: 'Spiel erstellen',
+      },
+      gameMode: {
+        Portuguese: 'Modo de Jogo',
+        English: 'Game Mode',
+        Spanish: 'Modo de Jogo',
+        French: 'Mode de jeu',
+        German: 'Spielmodus',
+      },
+      difficulty: {
+        Portuguese: 'Dificuldade',
+        English: 'Difficulty',
+        Spanish: 'Dificultad',
+        French: 'Difficulté',
+        German: 'Schwierigkeit',
+      },
+      language: {
+        Portuguese: 'Idioma',
+        English: 'Language',
+        Spanish: 'Idioma',
+        French: 'Langue',
+        German: 'Sprache',
+      },
+      create: {
+        Portuguese: 'Criar Jogo',
+        English: 'Create',
+        Spanish: 'Crear',
+        French: 'Créer',
+        German: 'Erstellen',
+      },
+      creating: {
+        Portuguese: 'A criar...',
+        English: 'Creating...',
+        Spanish: 'Creando...',
+        French: 'En cours de création...',
+        German: 'Erstellen...',
+      },
+      joinGame: {
+        Portuguese: 'Entrar no Jogo',
+        English: 'Join Game',
+        Spanish: 'Unirse al Juego',
+        French: 'Rejoindre le jeu',
+        German: 'Spiel beitreten',
+      },
+      joining: {
+        Portuguese: 'A entrar...',
+        English: 'Joining...',
+        Spanish: 'Uniendo...',
+        French: 'Rejoint en cours...',
+        German: 'Beitreten...',
+      },
+      gameIdLabel: {
+        Portuguese: 'Código do Jogo',
+        English: 'Game Code',
+        Spanish: 'Código del Juego',
+        French: 'Code du jeu',
+        German: 'Spielcode',
+      },
+      errorCreate: {
+        Portuguese: 'Erro ao Criar Jogo',
+        English: 'Error creating game',
+        Spanish: 'Error ao criar o jogo',
+        French: 'Erreur lors de la création du jogo',
+        German: 'Fehler beim Spiel erstellen',
+      },
+      errorJoin: {
+        Portuguese: 'Erro ao Entrar no Jogo',
+        English: 'Error joining game',
+        Spanish: 'Error al unirse al juego',
+        French: 'Erreur lors du rejoint',
+        German: 'Fehler beim Beitritt',
+      },
+    };
+
+    function translate(key: keyof typeof uiTranslations, lang: string): string {
+      const messages: Record<string, string> = uiTranslations[key as keyof Record<string, Record<string, string>>];
+      if (!messages) return key;
+      const translation: string = messages[lang] || messages.Portuguese;
+      return translation;
+    }
+
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setPending(true);
@@ -44,49 +131,49 @@ function CreateGameForm() {
     return (
         <Card className="shadow-lg">
             <CardHeader>
-                <CardTitle className="text-2xl flex items-center gap-2"><Users className="text-primary"/> Criar Jogo</CardTitle>
-                <CardDescription>Crie uma nova sala de jogo e convide amigos para jogar.</CardDescription>
+                <CardTitle className="text-2xl flex items-center gap-2"><Users className="text-primary"/> {translate('create', language)}</CardTitle>
+                <CardDescription>{translate('language', language)} para escolher o idioma do jogo.</CardDescription>
             </CardHeader>
             <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {error && (
                         <Alert variant="destructive">
                             <XCircle className="h-4 w-4" />
-                            <AlertTitle>Erro ao Criar Jogo</AlertTitle>
+                            <AlertTitle>{translate('errorCreate', language)}</AlertTitle>
                             <AlertDescription>{error}</AlertDescription>
                         </Alert>
                     )}
                     <div className="space-y-2">
-                        <Label htmlFor="gameMode-create">Modo de Jogo</Label>
+                        <Label htmlFor="gameMode-create">{translate('gameMode', language)}</Label>
                         <Select name="gameMode" onValueChange={(value: GameMode) => setGameMode(value)} value={gameMode} required>
                             <SelectTrigger id="gameMode-create">
-                                <SelectValue placeholder="Selecione o modo" />
+                                <SelectValue placeholder={translate('create', language)} />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="1v1">1v1 (2 Jogadores)</SelectItem>
-                                <SelectItem value="team">Equipas (4 Jogadores - 2v2)</SelectItem>
+                                <SelectItem value="1v1">{translate('create', language)} 1v1 (2 Jogadores)</SelectItem>
+                                <SelectItem value="team">{translate('create', language)} Equipas (4 Jogadores - 2v2)</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="difficulty-create">Dificuldade</Label>
+                        <Label htmlFor="difficulty-create">{translate('difficulty', language)}</Label>
                         <Select name="difficulty" onValueChange={(value: GameDifficulty) => setDifficulty(value)} value={difficulty} required>
                             <SelectTrigger id="difficulty-create">
-                                <SelectValue placeholder="Selecione a dificuldade" />
+                                <SelectValue placeholder={translate('difficulty', language)} />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="easy">Fácil (2x2)</SelectItem>
-                                <SelectItem value="medium">Médio (3x3)</SelectItem>
-                                <SelectItem value="hard">Difícil (4x4)</SelectItem>
-                                <SelectItem value="epic">Épico (5x5)</SelectItem>
+                                <SelectItem value="easy">{translate('create', language)} Fácil (2x2)</SelectItem>
+                                <SelectItem value="medium">{translate('create', language)} Médio (3x3)</SelectItem>
+                                <SelectItem value="hard">{translate('create', language)} Difícil (4x4)</SelectItem>
+                                <SelectItem value="epic">{translate('create', language)} Épico (5x5)</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="language-create">Idioma</Label>
+                        <Label htmlFor="language-create">{translate('language', language)}</Label>
                         <Select name="language" onValueChange={(value: string) => setLanguage(value)} value={language} required>
                             <SelectTrigger id="language-create">
-                                <SelectValue placeholder="Selecione o idioma" />
+                                <SelectValue placeholder={translate('language', language)} />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="Portuguese">Português</SelectItem>
@@ -101,12 +188,12 @@ function CreateGameForm() {
                         {pending ? (
                         <>
                             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                            A criar...
+                            {translate('creating', language)}
                         </>
                         ) : (
                         <>
                             <Users className="mr-2 h-5 w-5"/>
-                            Criar Jogo
+                            {translate('create', language)}
                         </>
                         )}
                     </Button>
@@ -119,7 +206,95 @@ function CreateGameForm() {
 function JoinGameForm() {
     const router = useRouter();
     const [pending, setPending] = useState(false);
+    const [language, setLanguage] = useState('Portuguese');
     const [error, setError] = useState<string | null>(null);
+
+    const uiTranslations: Record<string, Record<string, string>> = {
+      createGame: {
+        Portuguese: 'Criar Jogo',
+        English: 'Create Game',
+        Spanish: 'Crear Juego',
+        French: 'Créer un jogo',
+        German: 'Spiel erstellen',
+      },
+      gameMode: {
+        Portuguese: 'Modo de Jogo',
+        English: 'Game Mode',
+        Spanish: 'Modo de Jogo',
+        French: 'Mode de jeu',
+        German: 'Spielmodus',
+      },
+      difficulty: {
+        Portuguese: 'Dificuldade',
+        English: 'Difficulty',
+        Spanish: 'Dificultad',
+        French: 'Difficulté',
+        German: 'Schwierigkeit',
+      },
+      language: {
+        Portuguese: 'Idioma',
+        English: 'Language',
+        Spanish: 'Idioma',
+        French: 'Langue',
+        German: 'Sprache',
+      },
+      create: {
+        Portuguese: 'Criar Jogo',
+        English: 'Create',
+        Spanish: 'Crear',
+        French: 'Créer',
+        German: 'Erstellen',
+      },
+      creating: {
+        Portuguese: 'A criar...',
+        English: 'Creating...',
+        Spanish: 'Creando...',
+        French: 'En cours de création...',
+        German: 'Erstellen...',
+      },
+      joinGame: {
+        Portuguese: 'Entrar no Jogo',
+        English: 'Join Game',
+        Spanish: 'Unirse al Juego',
+        French: 'Rejoindre le jeu',
+        German: 'Spiel beitreten',
+      },
+      joining: {
+        Portuguese: 'A entrar...',
+        English: 'Joining...',
+        Spanish: 'Uniendo...',
+        French: 'Rejoint en cours...',
+        German: 'Beitreten...',
+      },
+      gameIdLabel: {
+        Portuguese: 'Código do Jogo',
+        English: 'Game Code',
+        Spanish: 'Código del Juego',
+        French: 'Code du jeu',
+        German: 'Spielcode',
+      },
+      errorCreate: {
+        Portuguese: 'Erro ao Criar Jogo',
+        English: 'Error creating game',
+        Spanish: 'Error ao criar o jogo',
+        French: 'Erreur lors de la création du jogo',
+        German: 'Fehler beim Spiel erstellen',
+      },
+      errorJoin: {
+        Portuguese: 'Erro ao Entrar no Jogo',
+        English: 'Error joining game',
+        Spanish: 'Error al unirse al juego',
+        French: 'Erreur lors du rejoint',
+        German: 'Fehler beim Beitritt',
+      },
+    };
+
+    function translate(key: keyof typeof uiTranslations, lang: string): string {
+      const messages: Record<string, string> = uiTranslations[key as keyof Record<string, Record<string, string>>];
+      if (!messages) return key;
+      const translation: string = messages[lang] || messages.Portuguese;
+      return translation;
+    }
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -146,20 +321,20 @@ function JoinGameForm() {
     return (
         <Card className="shadow-lg">
             <CardHeader>
-                <CardTitle className="text-2xl flex items-center gap-2"><Play className="text-accent" /> Entrar num Jogo</CardTitle>
-                <CardDescription>Tem um código de jogo? Insira-o abaixo para se juntar.</CardDescription>
+                <CardTitle className="text-2xl flex items-center gap-2"><Play className="text-accent" /> {translate('joinGame', language)}</CardTitle>
+                <CardDescription>{translate('language', language)} para escolher o idioma do jogo.</CardDescription>
             </CardHeader>
             <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
                      {error && (
                         <Alert variant="destructive">
                             <XCircle className="h-4 w-4" />
-                            <AlertTitle>Erro ao Entrar no Jogo</AlertTitle>
+                            <AlertTitle>{translate('errorJoin', language)}</AlertTitle>
                             <AlertDescription>{error}</AlertDescription>
                         </Alert>
                     )}
                     <div className="space-y-2">
-                        <Label htmlFor="gameId">Código do Jogo</Label>
+                        <Label htmlFor="gameId">{translate('gameIdLabel', language)}</Label>
                         <Input
                             id="gameId"
                             name="gameId"
@@ -173,12 +348,12 @@ function JoinGameForm() {
                         {pending ? (
                         <>
                             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                            A entrar...
+                            {translate('joining', language)}
                         </>
                         ) : (
                         <>
                             <Play className="mr-2 h-5 w-5"/>
-                            Entrar no Jogo
+                            {translate('joinGame', language)}
                         </>
                         )}
                     </Button>
@@ -191,14 +366,13 @@ function JoinGameForm() {
 export function GameLobby() {
   return (
     <div className="space-y-6">
-      <CreateGameForm />
-      
+      <CreateGameForm />        
       <div className="relative">
           <div className="absolute inset-0 flex items-center" aria-hidden="true">
               <div className="w-full border-t border-border"></div>
           </div>
           <div className="relative flex justify-center">
-              <span className="bg-background px-2 text-sm text-muted-foreground">OU</span>
+              <span>OR</span>
           </div>
       </div>
 
